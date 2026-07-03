@@ -1,7 +1,8 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using UIToolkitMVVM.Views;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Navigation
 {
     public interface IUIService
     {

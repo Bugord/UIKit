@@ -3,7 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine.UIElements;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Views
 {
     public interface IView : IDisposable
     {

@@ -1,6 +1,7 @@
-﻿using VContainer;
+﻿using UIToolkitMVVM.Widgets;
+using VContainer;
 
-namespace UI.Widgets
+namespace UIToolkitMVVM.VContainer
 {
     public class VContainerWidgetsFactory : IWidgetsFactory
     {

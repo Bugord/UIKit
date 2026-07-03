@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine.UIElements;
 
-namespace UI.Widgets
+namespace UIToolkitMVVM.Widgets
 {
     public interface IWidget : IDisposable
     {

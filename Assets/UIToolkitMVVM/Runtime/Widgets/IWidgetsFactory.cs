@@ -1,4 +1,4 @@
-﻿namespace UI.Widgets
+﻿namespace UIToolkitMVVM.Widgets
 {
     public interface IWidgetsFactory
     {

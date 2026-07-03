@@ -1,6 +1,6 @@
-﻿using UI.Navigation;
+﻿using UIToolkitMVVM.ViewModels;
 
-namespace UI.Widgets
+namespace UIToolkitMVVM.Widgets
 {
     public abstract class LoadableWidget<TViewModel> : Widget<TViewModel>, ILoadableWidget where TViewModel : ViewModel
     {

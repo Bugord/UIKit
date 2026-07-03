@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.ViewModels
 {
     public class ResultViewModel<TResult> : ViewModel
     {

@@ -1,7 +1,7 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Views
 {
     public interface IResultView<TResult> : IView
     {

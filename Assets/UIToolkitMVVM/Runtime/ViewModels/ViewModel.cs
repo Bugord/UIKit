@@ -1,6 +1,6 @@
 using System;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.ViewModels
 {
     public abstract class ViewModel : IDisposable
     {

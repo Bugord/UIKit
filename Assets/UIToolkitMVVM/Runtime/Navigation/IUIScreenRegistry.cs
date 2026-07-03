@@ -1,6 +1,6 @@
 ﻿using UnityEngine.UIElements;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Navigation
 {
     public interface IUIScreenRegistry
     {

@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Navigation
 {
     public class RootPanelProvider
     {

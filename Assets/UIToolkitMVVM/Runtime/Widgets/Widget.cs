@@ -1,7 +1,7 @@
-﻿using UI.Navigation;
+﻿using UIToolkitMVVM.ViewModels;
 using UnityEngine.UIElements;
 
-namespace UI.Widgets
+namespace UIToolkitMVVM.Widgets
 {
     public abstract class Widget<TModel> : IWidget where TModel : ViewModel
     {

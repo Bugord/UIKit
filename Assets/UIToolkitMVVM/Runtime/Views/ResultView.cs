@@ -1,7 +1,8 @@
 ﻿using System.Threading;
 using Cysharp.Threading.Tasks;
+using UIToolkitMVVM.ViewModels;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Views
 {
     public abstract class ResultView<TViewModel, TResult> : View<TViewModel>, IResultView<TResult> where TViewModel : ResultViewModel<TResult>
     {

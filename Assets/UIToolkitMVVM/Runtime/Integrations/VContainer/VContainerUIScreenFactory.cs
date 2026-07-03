@@ -1,6 +1,8 @@
+using UIToolkitMVVM.Navigation;
+using UIToolkitMVVM.Views;
 using VContainer;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.VContainer
 {
     public class VContainerUIScreenFactory : IUIScreenFactory
     {

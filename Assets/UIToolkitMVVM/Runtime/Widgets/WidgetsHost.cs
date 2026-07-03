@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace UI.Widgets
+namespace UIToolkitMVVM.Widgets
 {
     public class WidgetsHost : IDisposable
     {

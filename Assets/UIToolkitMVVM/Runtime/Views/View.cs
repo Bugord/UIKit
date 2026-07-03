@@ -1,8 +1,9 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine.UIElements;
+using UIToolkitMVVM.ViewModels;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Views
 {
     public abstract class View<TModel> : IView where TModel : ViewModel
     {

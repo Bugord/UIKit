@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using UI.Widgets;
+using UIToolkitMVVM.Widgets;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Utils;
+using UIToolkitMVVM.Utils;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Navigation
 {
     [CreateAssetMenu(menuName = "UI/Screen Registry")]
     public class UITemplateRegistry : ScriptableObject, IUIScreenRegistry, IWidgetTemplateRegistry

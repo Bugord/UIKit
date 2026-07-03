@@ -5,8 +5,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UIToolkitMVVM.Views;
 
-namespace UI.Navigation
+namespace UIToolkitMVVM.Navigation
 {
     public class UIService : IUIService, IDisposable
     {
