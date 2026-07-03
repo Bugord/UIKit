@@ -1,0 +1,22 @@
+{
+  "name": "com.bugord.uitoolkitmvvm",
+  "displayName": "UI Toolkit MVVM",
+  "version": "0.1.0",
+  "unity": "6000.0",
+  "description": "MVVM framework for Unity UI Toolkit: views, view models, widgets and screen navigation, with an optional VContainer integration.",
+  "keywords": [
+    "ui",
+    "uitoolkit",
+    "mvvm",
+    "navigation",
+    "architecture"
+  ],
+  "license": "MIT",
+  "author": {
+    "name": "Bugord"
+  },
+  "category": "Scripting",
+  "dependencies": {
+    "com.cysharp.unitask": "2.5.10"
+  }
+}
