@@ -21,11 +21,11 @@ Requires:
 
 ## What's included
 
-- **Views** (`UI.Navigation`) — `IView`, `View<TModel>`, and result-returning variants `IResultView<TResult>` / `ResultView<TViewModel, TResult>` for views that resolve with a value (e.g. a confirmation dialog).
-- **ViewModels** (`UI.Navigation`) — `ViewModel` base class, and `ResultViewModel<TResult>` for awaiting a result via UniTask.
-- **Navigation** (`UI.Navigation`) — `IUIService` for showing/hiding screens and popups (`ShowScreenAsync`, `ShowPopupAsync`, `ShowScreenAndWaitResultAsync`, ...), backed by `UIService`, `IUIScreenRegistry`/`UITemplateRegistry` for resolving `VisualTreeAsset`s by id, and `RootPanelProvider` for the root `UIDocument`.
-- **Widgets** (`UI.Widgets`) — `IWidget`/`Widget<TModel>` for reusable sub-views, and `WidgetsHost` to attach them to a `VisualElement` via `IWidgetsFactory` and `IWidgetTemplateRegistry`.
-- **VContainer integration** (`Runtime/Integrations/VContainer`) — `VContainerUIScreenFactory` and `VContainerWidgetsFactory`, resolving screens/widgets through VContainer's `IObjectResolver`. Kept in a separate assembly so the core package has no hard dependency on VContainer.
+- **Views** (`UIToolkitMVVM.Views`) — `IView`, `View<TModel>`, and result-returning variants `IResultView<TResult>` / `ResultView<TViewModel, TResult>` for views that resolve with a value (e.g. a confirmation dialog).
+- **ViewModels** (`UIToolkitMVVM.ViewModels`) — `ViewModel` base class, and `ResultViewModel<TResult>` for awaiting a result via UniTask.
+- **Navigation** (`UIToolkitMVVM.Navigation`) — `IUIService` for showing/hiding screens and popups (`ShowScreenAsync`, `ShowPopupAsync`, `ShowScreenAndWaitResultAsync`, ...), backed by `UIService`, `IUIScreenRegistry`/`UITemplateRegistry` for resolving `VisualTreeAsset`s by id, and `RootPanelProvider` for the root `UIDocument`.
+- **Widgets** (`UIToolkitMVVM.Widgets`) — `IWidget`/`Widget<TModel>` for reusable sub-views, and `WidgetsHost` to attach them to a `VisualElement` via `IWidgetsFactory` and `IWidgetTemplateRegistry`.
+- **VContainer integration** (`UIToolkitMVVM.VContainer`, under `Runtime/Integrations/VContainer`) — `VContainerUIScreenFactory` and `VContainerWidgetsFactory`, resolving screens/widgets through VContainer's `IObjectResolver`. Kept in a separate assembly so the core package has no hard dependency on VContainer.
 
 ## Package layout
 
