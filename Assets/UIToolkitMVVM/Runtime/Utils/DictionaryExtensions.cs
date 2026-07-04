@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace UIToolkitMVVM.Utils
 {
-    public static class DictExt
+    public static class DictionaryExtensions
     {
         public static Dictionary<TKey, TVal> ToDictionaryChecked<TKey, TVal>(this IEnumerable<TVal> source, Func<TVal, TKey> keySelector)
         {

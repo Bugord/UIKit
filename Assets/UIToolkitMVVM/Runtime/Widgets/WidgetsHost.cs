@@ -7,11 +7,11 @@ namespace UIToolkitMVVM.Widgets
 {
     public class WidgetsHost : IDisposable
     {
-        private readonly IWidgetsFactory widgetsFactory;
+        private readonly IWidgetFactory widgetsFactory;
         private readonly IWidgetTemplateRegistry templateRegistry;
         private readonly List<IWidget> widgets = new();
 
-        public WidgetsHost(IWidgetsFactory widgetsFactory, IWidgetTemplateRegistry templateRegistry)
+        public WidgetsHost(IWidgetFactory widgetsFactory, IWidgetTemplateRegistry templateRegistry)
         {
             this.widgetsFactory = widgetsFactory;
             this.templateRegistry = templateRegistry;
@@ -31,7 +31,6 @@ namespace UIToolkitMVVM.Widgets
 
         public TWidget AttachExisting<TWidget>(VisualElement widgetElement) where TWidget : IWidget
         {
-            Debug.Log($"Attaching widget inside {widgetElement}");
             var widget = widgetsFactory.Create<TWidget>();
             widget.Bind(widgetElement);
             widgets.Add(widget);

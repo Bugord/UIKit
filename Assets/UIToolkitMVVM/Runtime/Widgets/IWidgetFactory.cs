@@ -1,6 +1,6 @@
 ﻿namespace UIToolkitMVVM.Widgets
 {
-    public interface IWidgetsFactory
+    public interface IWidgetFactory
     {
         TWidget Create<TWidget>() where TWidget : IWidget;
     }

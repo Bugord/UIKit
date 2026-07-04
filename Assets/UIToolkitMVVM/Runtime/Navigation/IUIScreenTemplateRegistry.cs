@@ -2,7 +2,7 @@
 
 namespace UIToolkitMVVM.Navigation
 {
-    public interface IUIScreenRegistry
+    public interface IUIScreenTemplateRegistry
     {
         VisualTreeAsset Get(string screenId);
     }

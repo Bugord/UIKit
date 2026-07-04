@@ -4,10 +4,10 @@ using VContainer;
 
 namespace UIToolkitMVVM.VContainer
 {
-    public class VContainerUIScreenFactory : IUIScreenFactory
+    public class VContainerUIViewFactory : IUIViewFactory
     {
         private readonly IObjectResolver resolver;
-        public VContainerUIScreenFactory(IObjectResolver resolver) => this.resolver = resolver;
+        public VContainerUIViewFactory(IObjectResolver resolver) => this.resolver = resolver;
         public TController Create<TController>() where TController : IView => resolver.Resolve<TController>();
     }
 }

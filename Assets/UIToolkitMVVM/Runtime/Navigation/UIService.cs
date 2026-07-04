@@ -17,19 +17,19 @@ namespace UIToolkitMVVM.Navigation
             public VisualElement Root;
         }
 
-        private readonly IUIScreenRegistry uiScreenRegistry;
-        private readonly IUIScreenFactory uiScreenFactory;
+        private readonly IUIScreenTemplateRegistry uiScreenTemplateRegistry;
+        private readonly IUIViewFactory uiViewFactory;
         private readonly RootPanelProvider rootPanelProvider;
 
         private readonly SemaphoreSlim gate = new(1, 1);
         private readonly List<ActiveScreen> activePopups = new();
         private ActiveScreen currentScreen;
 
-        public UIService(IUIScreenFactory uiScreenFactory, IUIScreenRegistry uiScreenRegistry,
+        public UIService(IUIViewFactory uiViewFactory, IUIScreenTemplateRegistry uiScreenTemplateRegistry,
             RootPanelProvider rootPanelProvider)
         {
-            this.uiScreenRegistry = uiScreenRegistry;
-            this.uiScreenFactory = uiScreenFactory;
+            this.uiScreenTemplateRegistry = uiScreenTemplateRegistry;
+            this.uiViewFactory = uiViewFactory;
             this.rootPanelProvider = rootPanelProvider;
         }
 
@@ -174,9 +174,9 @@ namespace UIToolkitMVVM.Navigation
 
         private async UniTask<ActiveScreen> CreateAndShowAsync<TView>(CancellationToken token) where TView : IView
         {
-            var view = uiScreenFactory.Create<TView>();
+            var view = uiViewFactory.Create<TView>();
             var screenId = view.ViewId;
-            var entry = uiScreenRegistry.Get(screenId);
+            var entry = uiScreenTemplateRegistry.Get(screenId);
 
             var container = new VisualElement { name = $"{screenId}-root" };
             entry.CloneTree(container);

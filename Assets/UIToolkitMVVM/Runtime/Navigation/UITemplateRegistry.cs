@@ -7,13 +7,13 @@ using UIToolkitMVVM.Utils;
 
 namespace UIToolkitMVVM.Navigation
 {
-    [CreateAssetMenu(menuName = "UI/Screen Registry")]
-    public class UITemplateRegistry : ScriptableObject, IUIScreenRegistry, IWidgetTemplateRegistry
+    [CreateAssetMenu(menuName = "UI/Template Registry")]
+    public class UITemplateRegistry : ScriptableObject, IUIScreenTemplateRegistry, IWidgetTemplateRegistry
     {
         [Serializable]
         public class Entry
         {
-            public string screenId;
+            public string id;
             public VisualTreeAsset uxml;
         }
 
@@ -23,9 +23,9 @@ namespace UIToolkitMVVM.Navigation
         private Dictionary<string, Entry> lookup;
         private Dictionary<string, Entry> widgetLookup;
 
-        VisualTreeAsset IUIScreenRegistry.Get(string screenId)
+        VisualTreeAsset IUIScreenTemplateRegistry.Get(string screenId)
         {
-            lookup ??= entries.ToDictionaryChecked(e => e.screenId);
+            lookup ??= entries.ToDictionaryChecked(e => e.id);
 
             if (lookup.TryGetValue(screenId, out var entry)) {
                 return entry.uxml;
@@ -36,7 +36,7 @@ namespace UIToolkitMVVM.Navigation
 
         VisualTreeAsset IWidgetTemplateRegistry.Get(string widgetId)
         {
-            widgetLookup ??= widgetEntries.ToDictionaryChecked(e => e.screenId);
+            widgetLookup ??= widgetEntries.ToDictionaryChecked(e => e.id);
 
             if (widgetLookup.TryGetValue(widgetId, out var entry)) {
                 return entry.uxml;

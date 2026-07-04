@@ -2,7 +2,7 @@ using UIToolkitMVVM.Views;
 
 namespace UIToolkitMVVM.Navigation
 {
-    public interface IUIScreenFactory
+    public interface IUIViewFactory
     {
         TController Create<TController>() where TController : IView;
     }

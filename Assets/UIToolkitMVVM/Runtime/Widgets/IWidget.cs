@@ -8,9 +8,4 @@ namespace UIToolkitMVVM.Widgets
         VisualElement Root { get; }
         void Bind(VisualElement root);
     }
-
-    public interface ILoadableWidget : IWidget
-    {
-        string WidgetId { get; }
-    }
 }
