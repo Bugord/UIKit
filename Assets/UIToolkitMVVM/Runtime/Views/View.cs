@@ -1,13 +1,30 @@
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine.UIElements;
+using UIToolkitMVVM.Utils;
 using UIToolkitMVVM.ViewModels;
 
 namespace UIToolkitMVVM.Views
 {
     public abstract class View<TModel> : IView where TModel : ViewModel
     {
-        public abstract string ViewId { get; }
+        private static readonly Dictionary<Type, string> IdCache = new();
+
+        public virtual string ViewId
+        {
+            get
+            {
+                var type = GetType();
+                if (!IdCache.TryGetValue(type, out var id)) {
+                    id = UIIdConventions.ResolveScreenId(type);
+                    IdCache[type] = id;
+                }
+                return id;
+            }
+        }
+
         public VisualElement Root { get; private set; }
         protected TModel Model { get; }
 
