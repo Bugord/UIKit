@@ -23,9 +23,9 @@ Requires:
 
 - **Views** (`UIToolkitMVVM.Views`) — `IView`, `View<TModel>`, and result-returning variants `IResultView<TResult>` / `ResultView<TViewModel, TResult>` for views that resolve with a value (e.g. a confirmation dialog).
 - **ViewModels** (`UIToolkitMVVM.ViewModels`) — `ViewModel` base class, and `ResultViewModel<TResult>` for awaiting a result via UniTask.
-- **Navigation** (`UIToolkitMVVM.Navigation`) — `IUIService` for showing/hiding screens and popups (`ShowScreenAsync`, `ShowPopupAsync`, `ShowScreenAndWaitResultAsync`, ...), backed by `UIService`, `IUIScreenRegistry`/`UITemplateRegistry` for resolving `VisualTreeAsset`s by id, and `RootPanelProvider` for the root `UIDocument`.
-- **Widgets** (`UIToolkitMVVM.Widgets`) — `IWidget`/`Widget<TModel>` for reusable sub-views, and `WidgetsHost` to attach them to a `VisualElement` via `IWidgetsFactory` and `IWidgetTemplateRegistry`.
-- **VContainer integration** (`UIToolkitMVVM.VContainer`, under `Runtime/Integrations/VContainer`) — `VContainerUIScreenFactory` and `VContainerWidgetsFactory`, resolving screens/widgets through VContainer's `IObjectResolver`. Kept in a separate assembly so the core package has no hard dependency on VContainer.
+- **Navigation** (`UIToolkitMVVM.Navigation`) — `IUIService` for showing/hiding screens and popups (`ShowScreenAsync`, `ShowPopupAsync`, `ShowScreenAndWaitResultAsync`, ...), backed by `UIService`, `IUIScreenTemplateRegistry`/`UITemplateRegistry` for resolving `VisualTreeAsset`s by id, and `RootPanelProvider` for the root `UIDocument`.
+- **Widgets** (`UIToolkitMVVM.Widgets`) — `IWidget`/`Widget<TModel>` for reusable sub-views, and `WidgetsHost` to attach them to a `VisualElement` via `IWidgetFactory` and `IWidgetTemplateRegistry`.
+- **VContainer integration** (`UIToolkitMVVM.VContainer`, under `Runtime/Integrations/VContainer`) — `VContainerUIViewFactory` and `VContainerWidgetFactory`, resolving screens/widgets through VContainer's `IObjectResolver`. Kept in a separate assembly so the core package has no hard dependency on VContainer.
 
 ## Package layout
 
