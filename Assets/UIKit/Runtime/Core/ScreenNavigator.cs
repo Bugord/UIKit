@@ -95,6 +95,7 @@ namespace UIKit.Runtime.Core
             
             var entry = screensCatalog.Get(viewModelId);
             entry.uxml.CloneTree(root);
+            view.Attach(root);
 
             var container = uiRootProvider.GetLayerRoot(entry.layer);
             container.Add(view.Root);
