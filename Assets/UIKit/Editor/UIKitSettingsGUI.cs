@@ -12,8 +12,8 @@ namespace UIKit.Editor
  
         public static void Draw()
         {
-            var screenCatalog = FindSingle<ScreenCatalog>();
-            var widgetCatalog = FindSingle<WidgetCatalog>();
+            var screenCatalog = CatalogLocator.FindSingle<ScreenCatalog>();
+            var widgetCatalog = CatalogLocator.FindSingle<WidgetCatalog>();
  
             using (new EditorGUILayout.HorizontalScope()) {
                 if (GUILayout.Button("Sync with code", GUILayout.Width(140))) {
@@ -146,21 +146,6 @@ namespace UIKit.Editor
             EditorGUILayout.HelpBox(
                 $"No {typeof(T).Name} asset found. Create one via Assets/Create/UIKit/{menuName}.",
                 MessageType.Warning);
-        }
- 
-        private static T FindSingle<T>() where T : ScriptableObject
-        {
-            var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
-            if (guids.Length == 0) {
-                return null;
-            }
- 
-            if (guids.Length > 1) {
-                Debug.LogWarning($"Multiple {typeof(T).Name} assets found, using the first.");
-            }
- 
-            return AssetDatabase.LoadAssetAtPath<T>(
-                AssetDatabase.GUIDToAssetPath(guids[0]));
         }
  
         private static GUIStyle errorLabel;

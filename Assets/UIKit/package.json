@@ -1,7 +1,7 @@
 {
   "name": "com.bugord.uikit",
   "displayName": "UIKit",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "unity": "6000.0",
   "description": "MVVM framework for Unity UI Toolkit: views, view models, widgets and screen navigation, with an optional VContainer integration.",
   "keywords": [
