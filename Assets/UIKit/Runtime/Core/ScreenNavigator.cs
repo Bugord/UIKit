@@ -90,7 +90,7 @@ namespace UIKit.Runtime.Core
         {
             var view = screenResolver.ResolveView<TViewModel>();
 
-            var viewModelId = UIId.OfWidget(typeof(TViewModel));
+            var viewModelId = UIId.OfScreen(typeof(TViewModel));
             var root = new VisualElement { name = $"{viewModelId}Root" };
             
             var entry = screensCatalog.Get(viewModelId);
