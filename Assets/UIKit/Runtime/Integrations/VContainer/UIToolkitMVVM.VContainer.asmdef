@@ -1,8 +1,8 @@
 {
-    "name": "UIToolkitMVVM.VContainer",
+    "name": "UIKit.VContainer",
     "rootNamespace": "",
     "references": [
-        "UIToolkitMVVM",
+        "UIKit",
         "UniTask",
         "VContainer"
     ],

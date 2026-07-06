@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8b1b9f2a5a0440cd85d32913481b2926, type: 3}
+  m_Name: ScreenCatalog
+  m_EditorClassIdentifier: UIToolkitMVVM::UIKit.Runtime.Core.ScreenCatalog
+  entries:
+  - screenId: Confirmation
+    uxml: {fileID: 9197481963319205126, guid: 4d819347df7dbaa4b819cd0d32f6c199, type: 3}
+    layer: 0
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1
+  - screenId: MainMenu
+    uxml: {fileID: 9197481963319205126, guid: 4d819347df7dbaa4b819cd0d32f6c199, type: 3}
+    layer: 0
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1

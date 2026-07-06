@@ -1,8 +1,8 @@
 {
-    "name": "UIToolkitMVVM.Editor",
+    "name": "UIKit.Editor",
     "rootNamespace": "",
     "references": [
-        "UIToolkitMVVM"
+        "UIKit"
     ],
     "includePlatforms": [
         "Editor"

@@ -1,8 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UIKit.Runtime.Abstractions;
+using UIKit.Runtime.Utils;
+using UnityEngine.UIElements;
 
 namespace UIKit.Runtime.Core
 {
@@ -10,12 +13,12 @@ namespace UIKit.Runtime.Core
     {
         private readonly IScreenResolver screenResolver;
         private readonly IUIRootProvider uiRootProvider;
-        private readonly IScreensCatalog screensCatalog;
+        private readonly ScreenCatalog screensCatalog;
 
         private readonly List<ActiveScreen> activeScreens = new();
 
         public ScreenNavigator(IScreenResolver screenResolver, IUIRootProvider uiRootProvider,
-            IScreensCatalog screensCatalog)
+            ScreenCatalog screensCatalog)
         {
             this.screenResolver = screenResolver;
             this.screensCatalog = screensCatalog;
@@ -55,17 +58,18 @@ namespace UIKit.Runtime.Core
         {
             var view = ResolveViewInternal<TViewModel>();
             await view.ShowAsync(token);
-            
+
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
         }
 
-        public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel, TPayload>(TPayload payload, CancellationToken token = default)
+        public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel, TPayload>(TPayload payload,
+            CancellationToken token = default)
             where TViewModel : ViewModel, IPayloadReceiver<TPayload>
         {
             var view = ResolveViewInternal<TViewModel>();
             view.ViewModel.SetPayload(payload);
             await view.ShowAsync(token);
-            
+
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
         }
 
@@ -86,10 +90,13 @@ namespace UIKit.Runtime.Core
         {
             var view = screenResolver.ResolveView<TViewModel>();
 
-            var viewAsset = screensCatalog.GetAssetFor(view);
-            view.Attach(viewAsset.CloneTree());
+            var viewModelId = UIId.OfWidget(typeof(TViewModel));
+            var root = new VisualElement { name = $"{viewModelId}Root" };
+            
+            var entry = screensCatalog.Get(viewModelId);
+            entry.uxml.CloneTree(root);
 
-            var container = uiRootProvider.GetLayerRoot(UILayer.Screen);
+            var container = uiRootProvider.GetLayerRoot(entry.layer);
             container.Add(view.Root);
 
             return view;
