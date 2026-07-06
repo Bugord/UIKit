@@ -26,12 +26,7 @@ namespace UIKit.Runtime.Core
             var go = new GameObject(RootObjectName);
             UnityEngine.Object.DontDestroyOnLoad(go);
 
-            var root = CreatePanelRoot(go);
-
-            screenRoot = new VisualElement { name = ScreenRootName };
-            popupsRoot = new VisualElement { name = PopupsRootName };
-            root.Add(screenRoot);
-            root.Add(popupsRoot);
+            CreatePanelRoot(go);
         }
 
         public VisualElement GetLayerRoot(UILayer layer) =>
@@ -42,33 +37,40 @@ namespace UIKit.Runtime.Core
             };
 
 #if UNITY_6000_5_OR_NEWER
-        private VisualElement CreatePanelRoot(GameObject go)
+        private void CreatePanelRoot(GameObject go)
         {
             var panelRenderer = go.AddComponent<PanelRenderer>();
 
-            VisualElement root = null;
-            panelRenderer.RegisterUIReloadCallback((_, reloadedRoot, _) => root = reloadedRoot);
+            panelRenderer.RegisterUIReloadCallback(OnRegisterUIReload);
             panelRenderer.panelSettings = panelSettings;
+        }
 
-            if (root == null) {
-                throw new InvalidOperationException(
-                    $"{nameof(UIRootProvider)}: {nameof(PanelRenderer)} did not produce a root VisualElement.");
-            }
-
-            return root;
+        private void OnRegisterUIReload(PanelRenderer renderer, VisualElement newRoot)
+        {
+            screenRoot = new VisualElement { name = ScreenRootName };
+            popupsRoot = new VisualElement { name = PopupsRootName };
+            
+            newRoot.Add(screenRoot);
+            newRoot.Add(popupsRoot);
         }
 #else
-        private VisualElement CreatePanelRoot(GameObject go)
+        private void CreatePanelRoot(GameObject go)
         {
             var uiDocument = go.AddComponent<UIDocument>();
             uiDocument.panelSettings = panelSettings;
 
-            if (uiDocument.rootVisualElement == null) {
+            var root = uiDocument.rootVisualElement;
+
+            if (root == null) {
                 throw new InvalidOperationException(
                     $"{nameof(UIRootProvider)}: {nameof(UIDocument)} did not produce a root VisualElement.");
             }
 
-            return uiDocument.rootVisualElement;
+            screenRoot = new VisualElement { name = ScreenRootName };
+            popupsRoot = new VisualElement { name = PopupsRootName };
+
+            root.Add(screenRoot);
+            root.Add(popupsRoot);
         }
 #endif
     }
