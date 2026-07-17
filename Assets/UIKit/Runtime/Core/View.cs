@@ -9,6 +9,7 @@ namespace UIKit.Runtime.Core
     {
         public VisualElement Root { get; private set; }
         public TViewModel ViewModel { get; private set; }
+        protected IViewFactory ViewFactory { get; private set; }
 
         public void Bind(TViewModel viewModel)
         {
@@ -19,6 +20,11 @@ namespace UIKit.Runtime.Core
         {
             Root = root;
             OnAttach();
+        }
+
+        internal void SetViewFactory(IViewFactory viewFactory)
+        {
+            ViewFactory = viewFactory;
         }
 
         public virtual UniTask ShowAsync(CancellationToken token)
@@ -35,6 +41,7 @@ namespace UIKit.Runtime.Core
 
         public virtual void Dispose()
         {
+            Root?.RemoveFromHierarchy();
             Root = null;
             ViewModel.Dispose();
         }

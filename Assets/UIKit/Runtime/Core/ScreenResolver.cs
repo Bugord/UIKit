@@ -17,10 +17,11 @@ namespace UIKit.Runtime.Core
             return resolver.Resolve<TViewModel>();
         }
 
-        public View<TViewModel> ResolveView<TViewModel>()
+        public TView ResolveView<TView, TViewModel>()
+            where TView : View<TViewModel>
             where TViewModel : ViewModel
         {
-            return resolver.Resolve<View<TViewModel>>();
+            return resolver.Resolve<TView>();
         }
     }
 }

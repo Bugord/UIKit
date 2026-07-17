@@ -21,6 +21,7 @@ namespace UIKit.Runtime.Integrations.VContainer
                 .As<IInitializable>();
 
             builder.Register<ScreenResolver>(Lifetime.Singleton).As<IScreenResolver>();
+            builder.Register<ViewFactory>(Lifetime.Singleton).As<IViewFactory>();
             builder.Register<ScreenNavigator>(Lifetime.Singleton).As<IScreenNavigator>();
         }
 
@@ -29,7 +30,7 @@ namespace UIKit.Runtime.Integrations.VContainer
             where TView : View<TViewModel>
         {
             builder.Register<TViewModel>(Lifetime.Transient);
-            builder.Register<TView>(Lifetime.Transient).As<View<TViewModel>>();
+            builder.Register<TView>(Lifetime.Transient).AsSelf().As<View<TViewModel>>();
         }
     }
 }

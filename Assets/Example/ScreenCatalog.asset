@@ -25,6 +25,12 @@ MonoBehaviour:
     popupOptions:
       cancelOnBackdropClick: 1
       cancelOnNavigationCancel: 1
+  - screenId: PlayerBadge
+    uxml: {fileID: 9197481963319205126, guid: 24bb91478583e28498933a44f112c2a4, type: 3}
+    layer: 0
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1
   - screenId: Profile
     uxml: {fileID: 9197481963319205126, guid: 59589cb1e91049442ab99fdaf2a6b972, type: 3}
     layer: 0

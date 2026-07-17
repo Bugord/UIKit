@@ -9,6 +9,7 @@
     <ui:VisualElement name="profile" class="screen-fill">
         <ui:VisualElement class="panel">
             <ui:Label name="name-label" text="Welcome!" class="title" />
+            <ui:VisualElement name="badge-container" class="badge-container" />
             <ui:Button name="back-button" text="Back" class="menu-button" />
         </ui:VisualElement>
     </ui:VisualElement>

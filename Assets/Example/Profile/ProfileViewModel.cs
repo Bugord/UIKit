@@ -8,10 +8,12 @@ namespace Example.Profile
         private readonly IScreenNavigator navigator;
 
         public string PlayerName { get; private set; } = string.Empty;
+        public PlayerBadgeViewModel Badge { get; }
 
-        public ProfileViewModel(IScreenNavigator navigator)
+        public ProfileViewModel(IScreenNavigator navigator, PlayerBadgeViewModel badge)
         {
             this.navigator = navigator;
+            Badge = badge;
         }
 
         public void SetPayload(string payload) => PlayerName = payload;

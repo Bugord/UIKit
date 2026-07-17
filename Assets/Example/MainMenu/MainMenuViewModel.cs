@@ -1,4 +1,4 @@
-using Cysharp.Threading.Tasks;
+﻿using Cysharp.Threading.Tasks;
 using Example.Confirmation;
 using Example.Profile;
 using Example.Rename;
@@ -21,8 +21,7 @@ namespace Example
             this.navigator = navigator;
         }
 
-        public UniTask<bool> StartGameAsync() =>
-            navigator.RunAsync<ConfirmPopupViewModel, bool>();
+        public UniTask<bool> StartGameAsync() => navigator.RunAsync<ConfirmPopupViewModel, bool>();
 
         public async UniTask OpenSettingsAsync()
         {

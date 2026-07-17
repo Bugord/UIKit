@@ -24,6 +24,7 @@ namespace Example
             builder.RegisterScreen<ConfirmPopupViewModel, ConfirmPopupView>();
             builder.RegisterScreen<SettingsViewModel, SettingsView>();
             builder.RegisterScreen<ProfileViewModel, ProfileView>();
+            builder.RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>();
             builder.RegisterScreen<NameInputPopupViewModel, NameInputPopupView>();
 
             builder.RegisterEntryPoint<ExampleEntryPoint>();

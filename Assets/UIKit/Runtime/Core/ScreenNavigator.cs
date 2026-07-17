@@ -1,27 +1,26 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using UIKit.Runtime.Abstractions;
-using UIKit.Runtime.Utils;
-using UnityEngine.UIElements;
 
 namespace UIKit.Runtime.Core
 {
     public class ScreenNavigator : IScreenNavigator
     {
         private readonly IScreenResolver screenResolver;
+        private readonly IViewFactory viewFactory;
         private readonly IUIRootProvider uiRootProvider;
         private readonly ScreenCatalog screensCatalog;
 
         private readonly List<ActiveScreen> activeScreens = new();
 
-        public ScreenNavigator(IScreenResolver screenResolver, IUIRootProvider uiRootProvider,
-            ScreenCatalog screensCatalog)
+        public ScreenNavigator(IScreenResolver screenResolver, IViewFactory viewFactory,
+            IUIRootProvider uiRootProvider, ScreenCatalog screensCatalog)
         {
             this.screenResolver = screenResolver;
+            this.viewFactory = viewFactory;
             this.screensCatalog = screensCatalog;
             this.uiRootProvider = uiRootProvider;
         }
@@ -97,21 +96,10 @@ namespace UIKit.Runtime.Core
             var viewModel = screenResolver.Resolve<TViewModel>();
             beforeAttach?.Invoke(viewModel);
 
-            var view = screenResolver.ResolveView<TViewModel>();
-            view.Bind(viewModel);
+            var layer = screensCatalog.Get(UIId.OfScreen(typeof(TViewModel))).layer;
+            var container = uiRootProvider.GetLayerRoot(layer);
 
-            var viewModelId = UIId.OfScreen(typeof(TViewModel));
-            var root = new VisualElement { name = $"{viewModelId}Root" };
-            root.StretchToParent();
-
-            var entry = screensCatalog.Get(viewModelId);
-            entry.uxml.CloneTree(root);
-            view.Attach(root);
-
-            var container = uiRootProvider.GetLayerRoot(entry.layer);
-            container.Add(view.Root);
-
-            return view;
+            return viewFactory.Create<View<TViewModel>, TViewModel>(viewModel, container);
         }
 
         private async UniTask CloseInternal(ActiveScreen activeScreen, CancellationToken token)
