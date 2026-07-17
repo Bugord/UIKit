@@ -15,6 +15,7 @@ namespace UIKit.Runtime.Core
         private readonly ScreenCatalog screensCatalog;
 
         private readonly List<ActiveScreen> activeScreens = new();
+        private readonly List<ActiveScreen> screenStack = new();
 
         public ScreenNavigator(IScreenResolver screenResolver, IViewFactory viewFactory,
             IUIRootProvider uiRootProvider, ScreenCatalog screensCatalog)
@@ -28,11 +29,10 @@ namespace UIKit.Runtime.Core
         public async UniTask<TResult> RunAsync<TViewModel, TResult>(CancellationToken token = default)
             where TViewModel : ResultViewModel<TResult>
         {
-            var view = ResolveViewInternal<TViewModel>();
+            var view = ResolveViewInternal<TViewModel>(out var layer);
             var activeScreen = new ActiveScreen(view.ViewModel, view);
-            activeScreens.Add(activeScreen);
 
-            await view.ShowAsync(token);
+            await PushAsync(activeScreen, layer, token);
             var result = await view.ViewModel.WaitForResultAsync(token);
             await CloseInternal(activeScreen, token);
 
@@ -43,12 +43,10 @@ namespace UIKit.Runtime.Core
             CancellationToken token = default)
             where TViewModel : ResultViewModel<TResult>, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>(vm => vm.SetPayload(payload));
-
+            var view = ResolveViewInternal<TViewModel>(out var layer, vm => vm.SetPayload(payload));
             var activeScreen = new ActiveScreen(view.ViewModel, view);
-            activeScreens.Add(activeScreen);
 
-            await view.ShowAsync(token);
+            await PushAsync(activeScreen, layer, token);
             var result = await view.ViewModel.WaitForResultAsync(token);
             await CloseInternal(activeScreen, token);
 
@@ -58,9 +56,10 @@ namespace UIKit.Runtime.Core
         public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel>(CancellationToken token = default)
             where TViewModel : ViewModel
         {
-            var view = ResolveViewInternal<TViewModel>();
-            activeScreens.Add(new ActiveScreen(view.ViewModel, view));
-            await view.ShowAsync(token);
+            var view = ResolveViewInternal<TViewModel>(out var layer);
+            var activeScreen = new ActiveScreen(view.ViewModel, view);
+
+            await PushAsync(activeScreen, layer, token);
 
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
         }
@@ -69,10 +68,10 @@ namespace UIKit.Runtime.Core
             CancellationToken token = default)
             where TViewModel : ViewModel, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>(vm => vm.SetPayload(payload));
+            var view = ResolveViewInternal<TViewModel>(out var layer, vm => vm.SetPayload(payload));
+            var activeScreen = new ActiveScreen(view.ViewModel, view);
 
-            activeScreens.Add(new ActiveScreen(view.ViewModel, view));
-            await view.ShowAsync(token);
+            await PushAsync(activeScreen, layer, token);
 
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
         }
@@ -90,16 +89,32 @@ namespace UIKit.Runtime.Core
             return activeScreens.Any(screen => screen.ViewModel == viewModel);
         }
 
-        private View<TViewModel> ResolveViewInternal<TViewModel>(Action<TViewModel> beforeAttach = null)
+        private View<TViewModel> ResolveViewInternal<TViewModel>(out UILayer layer,
+            Action<TViewModel> beforeAttach = null)
             where TViewModel : ViewModel
         {
             var viewModel = screenResolver.Resolve<TViewModel>();
             beforeAttach?.Invoke(viewModel);
 
-            var layer = screensCatalog.Get(UIId.OfScreen(typeof(TViewModel))).layer;
+            layer = screensCatalog.Get(UIId.OfScreen(typeof(TViewModel))).layer;
             var container = uiRootProvider.GetLayerRoot(layer);
 
             return viewFactory.Create<View<TViewModel>, TViewModel>(viewModel, container);
+        }
+
+        private async UniTask PushAsync(ActiveScreen activeScreen, UILayer layer, CancellationToken token)
+        {
+            activeScreens.Add(activeScreen);
+
+            if (layer == UILayer.Screen) {
+                if (screenStack.Count > 0) {
+                    await screenStack[^1].View.HideAsync(token);
+                }
+
+                screenStack.Add(activeScreen);
+            }
+
+            await activeScreen.View.ShowAsync(token);
         }
 
         private async UniTask CloseInternal(ActiveScreen activeScreen, CancellationToken token)
@@ -108,6 +123,18 @@ namespace UIKit.Runtime.Core
             activeScreen.View.Dispose();
 
             activeScreens.Remove(activeScreen);
+
+            var stackIndex = screenStack.IndexOf(activeScreen);
+            if (stackIndex < 0) {
+                return;
+            }
+
+            var wasTop = stackIndex == screenStack.Count - 1;
+            screenStack.RemoveAt(stackIndex);
+
+            if (wasTop && screenStack.Count > 0) {
+                await screenStack[^1].View.ShowAsync(token);
+            }
         }
     }
 }
