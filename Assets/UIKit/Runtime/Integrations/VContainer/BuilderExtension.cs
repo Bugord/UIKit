@@ -9,18 +9,17 @@ namespace UIKit.Runtime.Integrations.VContainer
 {
     public static class BuilderExtension
     {
-        public static void AddUIKit(this IContainerBuilder builder, ScreenCatalog screenCatalog,
-            PanelSettings panelSettings = null)
+        public static void AddUIKit(this IContainerBuilder builder, ScreenCatalog screenCatalog, PanelSettings panelSettings = null)
         {
             builder.RegisterInstance(screenCatalog);
 
-            builder.RegisterInstance(panelSettings != null ? panelSettings : ScriptableObject.CreateInstance<PanelSettings>());
+            panelSettings ??= ScriptableObject.CreateInstance<PanelSettings>();
+            builder.RegisterInstance(panelSettings);
 
-            builder.Register<UIRootProvider>(Lifetime.Singleton)
-                .As<IUIRootProvider>()
-                .As<IInitializable>();
+            builder.Register<UIRootProvider>(Lifetime.Singleton).As<IUIRootProvider>().AsSelf();
+            builder.Register<UIRootProviderInitializer>(Lifetime.Singleton).As<IInitializable>();
 
-            builder.Register<ScreenResolver>(Lifetime.Singleton).As<IScreenResolver>();
+            builder.Register<VContainerScreenResolver>(Lifetime.Singleton).As<IScreenResolver>();
             builder.Register<ViewFactory>(Lifetime.Singleton).As<IViewFactory>();
             builder.Register<ScreenNavigator>(Lifetime.Singleton).As<IScreenNavigator>();
         }

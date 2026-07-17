@@ -1,13 +1,14 @@
-﻿using UIKit.Runtime.Abstractions;
+using UIKit.Runtime.Abstractions;
+using UIKit.Runtime.Core;
 using VContainer;
 
-namespace UIKit.Runtime.Core
+namespace UIKit.Runtime.Integrations.VContainer
 {
-    public class ScreenResolver : IScreenResolver
+    public class VContainerScreenResolver : IScreenResolver
     {
         private readonly IObjectResolver resolver;
 
-        public ScreenResolver(IObjectResolver resolver)
+        public VContainerScreenResolver(IObjectResolver resolver)
         {
             this.resolver = resolver;
         }

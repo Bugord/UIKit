@@ -2,8 +2,7 @@
     "name": "UIKit",
     "rootNamespace": "",
     "references": [
-        "UniTask",
-        "VContainer"
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -2,11 +2,10 @@ using System;
 using UIKit.Runtime.Utils;
 using UnityEngine;
 using UnityEngine.UIElements;
-using VContainer.Unity;
 
 namespace UIKit.Runtime.Core
 {
-    public class UIRootProvider : IUIRootProvider, IInitializable
+    public class UIRootProvider : IUIRootProvider
     {
         private const string RootObjectName = "UIKitRoot";
         private const string ScreenRootName = "ScreenRoot";
