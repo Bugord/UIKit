@@ -29,10 +29,12 @@ namespace UIKit.Runtime.Core
             where TViewModel : ResultViewModel<TResult>
         {
             var view = ResolveViewInternal<TViewModel>();
+            var activeScreen = new ActiveScreen(view.ViewModel, view);
+            activeScreens.Add(activeScreen);
 
             await view.ShowAsync(token);
             var result = await view.ViewModel.WaitForResultAsync(token);
-            await view.HideAsync(token);
+            await CloseInternal(activeScreen, token);
 
             return result;
         }
@@ -44,11 +46,12 @@ namespace UIKit.Runtime.Core
             var view = ResolveViewInternal<TViewModel>();
             view.ViewModel.SetPayload(payload);
 
-            activeScreens.Add(new ActiveScreen(view.ViewModel, view));
+            var activeScreen = new ActiveScreen(view.ViewModel, view);
+            activeScreens.Add(activeScreen);
 
             await view.ShowAsync(token);
             var result = await view.ViewModel.WaitForResultAsync(token);
-            await view.HideAsync(token);
+            await CloseInternal(activeScreen, token);
 
             return result;
         }
@@ -57,6 +60,7 @@ namespace UIKit.Runtime.Core
             where TViewModel : ViewModel
         {
             var view = ResolveViewInternal<TViewModel>();
+            activeScreens.Add(new ActiveScreen(view.ViewModel, view));
             await view.ShowAsync(token);
 
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
@@ -68,6 +72,8 @@ namespace UIKit.Runtime.Core
         {
             var view = ResolveViewInternal<TViewModel>();
             view.ViewModel.SetPayload(payload);
+
+            activeScreens.Add(new ActiveScreen(view.ViewModel, view));
             await view.ShowAsync(token);
 
             return new ScreenHandle<TViewModel>(this, view.ViewModel);
@@ -77,7 +83,7 @@ namespace UIKit.Runtime.Core
             where TViewModel : ViewModel
         {
             var activeScreen = activeScreens.Find(x => x.ViewModel == viewModel);
-            return CloseInternal(activeScreen, token);
+            return activeScreen != null ? CloseInternal(activeScreen, token) : UniTask.CompletedTask;
         }
 
         public bool IsOpen<TViewModel>(TViewModel viewModel)

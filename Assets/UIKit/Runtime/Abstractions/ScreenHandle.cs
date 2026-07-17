@@ -15,6 +15,6 @@ namespace UIKit.Runtime.Abstractions
             ViewModel = viewModel;
         }
 
-        public UniTask CloseAsync() => IsOpen ? UniTask.CompletedTask : navigator.CloseAsync(ViewModel);
+        public UniTask CloseAsync() => IsOpen ? navigator.CloseAsync(ViewModel) : UniTask.CompletedTask;
     }
 }
