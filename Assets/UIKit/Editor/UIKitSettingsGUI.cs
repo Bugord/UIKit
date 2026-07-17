@@ -51,20 +51,40 @@ namespace UIKit.Editor
             foreach (var entry in catalog.Entries) {
                 using (new EditorGUILayout.HorizontalScope()) {
                     var missing = entry.uxml == null;
- 
+
                     EditorGUILayout.LabelField(
                         missing ? $"! {entry.screenId}" : entry.screenId,
                         missing ? ErrorLabel : EditorStyles.label,
                         GUILayout.Width(220));
- 
-                    EditorGUILayout.LabelField(entry.layer.ToString(), GUILayout.Width(70));
- 
+
+                    EditorGUI.BeginChangeCheck();
+                    var layer = (UILayer)EditorGUILayout.EnumPopup(entry.layer, GUILayout.Width(70));
+                    if (EditorGUI.EndChangeCheck()) {
+                        entry.layer = layer;
+                        dirty = true;
+                    }
+
                     EditorGUI.BeginChangeCheck();
                     var uxml = (VisualTreeAsset)EditorGUILayout.ObjectField(
-                        entry.uxml, typeof(VisualTreeAsset), false);
+                        entry.uxml, typeof(VisualTreeAsset), false, GUILayout.Width(160));
                     if (EditorGUI.EndChangeCheck()) {
                         entry.uxml = uxml;
                         dirty = true;
+                    }
+
+                    using (new EditorGUI.DisabledScope(entry.layer != UILayer.Popup)) {
+                        EditorGUI.BeginChangeCheck();
+                        var backdrop = EditorGUILayout.ToggleLeft(
+                            "Backdrop", entry.popupOptions.cancelOnBackdropClick, GUILayout.Width(90));
+                        var navCancel = EditorGUILayout.ToggleLeft(
+                            "Nav Cancel", entry.popupOptions.cancelOnNavigationCancel, GUILayout.Width(90));
+                        if (EditorGUI.EndChangeCheck()) {
+                            entry.popupOptions = new ScreenCatalog.PopupOptionsData {
+                                cancelOnBackdropClick = backdrop,
+                                cancelOnNavigationCancel = navCancel
+                            };
+                            dirty = true;
+                        }
                     }
                 }
             }
@@ -87,7 +107,8 @@ namespace UIKit.Editor
             using (new EditorGUILayout.HorizontalScope()) {
                 EditorGUILayout.LabelField("Screen", EditorStyles.miniBoldLabel, GUILayout.Width(220));
                 EditorGUILayout.LabelField("Layer", EditorStyles.miniBoldLabel, GUILayout.Width(70));
-                EditorGUILayout.LabelField("UXML", EditorStyles.miniBoldLabel);
+                EditorGUILayout.LabelField("UXML", EditorStyles.miniBoldLabel, GUILayout.Width(160));
+                EditorGUILayout.LabelField("Popup cancel", EditorStyles.miniBoldLabel);
             }
         }
  

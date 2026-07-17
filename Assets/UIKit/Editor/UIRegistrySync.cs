@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using UIKit.Runtime.Abstractions;
 using UIKit.Runtime.Core;
 using UIKit.Runtime.Utils;
@@ -34,12 +33,9 @@ namespace UIKit.Editor
 
             foreach (var (id, vmType) in wanted) {
                 if (!existing.TryGetValue(id, out var entry)) {
-                    entry = new ScreenCatalog.Entry { screenId = id };
+                    entry = new ScreenCatalog.Entry { screenId = id, layer = ResolveLayer(vmType) };
                     report.Added.Add(id);
                 }
-
-                entry.layer = ResolveLayer(vmType);
-                entry.popupOptions = ResolvePopupOptions(vmType);
 
                 if (entry.uxml == null) {
                     entry.uxml = FindUxmlByName(id);
@@ -63,29 +59,8 @@ namespace UIKit.Editor
             return report;
         }
 
-        private static UILayer ResolveLayer(Type vmType)
-        {
-            var attr = vmType.GetCustomAttribute<UIScreenAttribute>();
-            if (attr is { LayerSpecified: true }) {
-                return attr.Layer;
-            }
-
-            return typeof(IPopup).IsAssignableFrom(vmType) ? UILayer.Popup : UILayer.Screen;
-        }
-
-        private static ScreenCatalog.PopupOptionsData ResolvePopupOptions(Type vmType)
-        {
-            var attr = vmType.GetCustomAttribute<UIScreenAttribute>();
-
-            if (attr == null) {
-                return ScreenCatalog.PopupOptionsData.Default;
-            }
-
-            return new ScreenCatalog.PopupOptionsData {
-                cancelOnBackdropClick = attr.CancelOnBackdropClick,
-                cancelOnNavigationCancel = attr.CancelOnNavigationCancel
-            };
-        }
+        private static UILayer ResolveLayer(Type vmType) =>
+            typeof(IPopup).IsAssignableFrom(vmType) ? UILayer.Popup : UILayer.Screen;
 
         internal static VisualTreeAsset FindUxmlByName(string id)
         {

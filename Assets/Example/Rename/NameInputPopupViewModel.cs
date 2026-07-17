@@ -1,10 +1,9 @@
 using UIKit.Runtime.Abstractions;
-using UIKit.Runtime.Core;
 using UIKit.Runtime.Utils;
 
 namespace Example.Rename
 {
-    [UIScreen(UILayer.Popup, "RenameName")]
+    [UIScreen("RenameName")]
     public class NameInputPopupViewModel : PopupViewModel<string>, IPayloadReceiver<string>
     {
         public string InitialName { get; private set; } = string.Empty;
