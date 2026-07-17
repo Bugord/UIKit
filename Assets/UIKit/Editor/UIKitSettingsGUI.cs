@@ -13,28 +13,22 @@ namespace UIKit.Editor
         public static void Draw()
         {
             var screenCatalog = CatalogLocator.FindSingle<ScreenCatalog>();
-            var widgetCatalog = CatalogLocator.FindSingle<WidgetCatalog>();
- 
+
             using (new EditorGUILayout.HorizontalScope()) {
                 if (GUILayout.Button("Sync with code", GUILayout.Width(140))) {
                     if (screenCatalog != null) {
                         UIRegistrySync.Sync(screenCatalog);
                     }
-                    if (widgetCatalog != null) {
-                        WidgetRegistrySync.Sync(widgetCatalog);
-                    }
                 }
- 
+
                 GUILayout.FlexibleSpace();
             }
- 
+
             EditorGUILayout.Space(8);
             scroll = EditorGUILayout.BeginScrollView(scroll);
- 
+
             DrawScreenCatalog(screenCatalog);
-            EditorGUILayout.Space(16);
-            DrawWidgetCatalog(widgetCatalog);
- 
+
             EditorGUILayout.EndScrollView();
         }
  
@@ -50,7 +44,7 @@ namespace UIKit.Editor
             EditorGUILayout.ObjectField(catalog, typeof(ScreenCatalog), false);
             EditorGUILayout.Space(4);
  
-            DrawHeader("Screen", "Layer", "UXML");
+            DrawHeader();
  
             var dirty = false;
  
@@ -88,56 +82,12 @@ namespace UIKit.Editor
             }
         }
  
-        private static void DrawWidgetCatalog(WidgetCatalog catalog)
-        {
-            EditorGUILayout.LabelField("Widgets (templated)", EditorStyles.boldLabel);
- 
-            if (catalog == null) {
-                DrawMissingCatalog<WidgetCatalog>("Widget Catalog");
-                return;
-            }
- 
-            EditorGUILayout.ObjectField(catalog, typeof(WidgetCatalog), false);
-            EditorGUILayout.Space(4);
- 
-            DrawHeader("Widget", null, "UXML");
- 
-            var dirty = false;
- 
-            foreach (var entry in catalog.Entries) {
-                using (new EditorGUILayout.HorizontalScope()) {
-                    var missing = entry.uxml == null;
- 
-                    EditorGUILayout.LabelField(
-                        missing ? $"! {entry.widgetId}" : entry.widgetId,
-                        missing ? ErrorLabel : EditorStyles.label,
-                        GUILayout.Width(294));
- 
-                    EditorGUI.BeginChangeCheck();
-                    var uxml = (VisualTreeAsset)EditorGUILayout.ObjectField(
-                        entry.uxml, typeof(VisualTreeAsset), false);
-                    if (EditorGUI.EndChangeCheck()) {
-                        entry.uxml = uxml;
-                        dirty = true;
-                    }
-                }
-            }
- 
-            if (dirty) {
-                EditorUtility.SetDirty(catalog);
-            }
-        }
- 
-        private static void DrawHeader(string first, string second, string third)
+        private static void DrawHeader()
         {
             using (new EditorGUILayout.HorizontalScope()) {
-                EditorGUILayout.LabelField(first, EditorStyles.miniBoldLabel,
-                    GUILayout.Width(second != null ? 220 : 294));
-                if (second != null) {
-                    EditorGUILayout.LabelField(second, EditorStyles.miniBoldLabel,
-                        GUILayout.Width(70));
-                }
-                EditorGUILayout.LabelField(third, EditorStyles.miniBoldLabel);
+                EditorGUILayout.LabelField("Screen", EditorStyles.miniBoldLabel, GUILayout.Width(220));
+                EditorGUILayout.LabelField("Layer", EditorStyles.miniBoldLabel, GUILayout.Width(70));
+                EditorGUILayout.LabelField("UXML", EditorStyles.miniBoldLabel);
             }
         }
  

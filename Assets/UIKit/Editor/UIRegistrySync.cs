@@ -19,7 +19,6 @@ namespace UIKit.Editor
 
             var viewModelTypes = TypeCache.GetTypesDerivedFrom<ViewModel>()
                 .Where(t => !t.IsAbstract && !t.IsGenericTypeDefinition)
-                .Where(IsScreenViewModel)
                 .ToList();
 
             var wanted = new Dictionary<string, Type>();
@@ -63,23 +62,6 @@ namespace UIKit.Editor
             report.Log(nameof(ScreenCatalog));
             return report;
         }
-
-        private static bool IsScreenViewModel(Type type) => !WidgetViewModelTypes.Value.Contains(type);
-
-        private static readonly Lazy<HashSet<Type>> WidgetViewModelTypes = new(() => {
-            var result = new HashSet<Type>();
-
-            foreach (var widgetType in TypeCache.GetTypesDerivedFrom<IWidget>()) {
-                for (var t = widgetType.BaseType; t != null; t = t.BaseType) {
-                    if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Widget<>)) {
-                        result.Add(t.GetGenericArguments()[0]);
-                        break;
-                    }
-                }
-            }
-
-            return result;
-        });
 
         private static UILayer ResolveLayer(Type vmType)
         {

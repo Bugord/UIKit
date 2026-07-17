@@ -12,11 +12,6 @@ namespace UIKit.Editor
             if (screenCatalog != null) {
                 UIRegistrySync.Sync(screenCatalog);
             }
-
-            var widgetCatalog = CatalogLocator.FindSingle<WidgetCatalog>();
-            if (widgetCatalog != null) {
-                WidgetRegistrySync.Sync(widgetCatalog);
-            }
         }
     }
 }

@@ -10,12 +10,6 @@ namespace UIKit.Runtime.Utils
             return attribute?.Id ?? StripSuffix(type.Name, "View");
         }
 
-        public static string ResolveWidgetId(Type type)
-        {
-            var attribute = (UIWidgetAttribute)Attribute.GetCustomAttribute(type, typeof(UIWidgetAttribute));
-            return attribute?.Id ?? StripSuffix(type.Name, "Widget");
-        }
-
         private static string StripSuffix(string name, string suffix)
         {
             return name.Length > suffix.Length && name.EndsWith(suffix, StringComparison.Ordinal)
