@@ -19,6 +19,60 @@ Requires:
 - [UniTask](https://github.com/Cysharp/UniTask) (`com.cysharp.unitask`)
 - [VContainer](https://github.com/hadashiA/VContainer) — only if you use the bundled VContainer integration (`Runtime/Integrations/VContainer`)
 
+## Quickstart
+
+This walks through wiring up a single screen end-to-end. For a fuller, runnable
+sample (popups, payloads, and result flows), import **Example** from
+Package Manager → UIKit → Samples, then open its scene and press Play.
+
+1. **Create a Screen Catalog.** Right-click in the Project window →
+   `Create > UIKit > Screen Catalog`. Only one should exist per project.
+
+2. **Write a ViewModel.** The screen's id is derived from the type name with a
+   trailing `ViewModel` stripped — `MainMenuViewModel` → id `"MainMenu"`.
+
+   ```csharp
+   public class MainMenuViewModel : ViewModel
+   {
+       public string Greeting => "Hello, UIKit!";
+   }
+   ```
+
+3. **Write a View and matching UXML.** The UXML file must be named the same as
+   the screen id (`MainMenu.uxml`) so auto-sync can match it to the catalog.
+
+   ```csharp
+   public class MainMenuView : View<MainMenuViewModel>
+   {
+       protected override void OnAttach()
+       {
+           Root.Q<Label>("greeting-label").text = ViewModel.Greeting;
+       }
+   }
+   ```
+
+4. **Let auto-sync run.** Saving the script triggers `[DidReloadScripts]`, which
+   registers `MainMenu` in the catalog. Open `Project Settings > UI Kit` to confirm
+   it's listed with the UXML resolved (an unresolved UXML blocks builds); use
+   "Sync with code" there if it doesn't pick it up automatically.
+
+5. **Wire it into DI.** In a `LifetimeScope`:
+
+   ```csharp
+   protected override void Configure(IContainerBuilder builder)
+   {
+       builder.AddUIKit(screenCatalog, panelSettings);
+       builder.RegisterScreen<MainMenuViewModel, MainMenuView>();
+   }
+   ```
+
+6. **Open it.** From an `IStartable`, another ViewModel, or anywhere else with
+   `IScreenNavigator` injected:
+
+   ```csharp
+   await navigator.OpenAsync<MainMenuViewModel>();
+   ```
+
 ## What's included
 
 - **ViewModel** (`UIKit.Runtime.Abstractions.ViewModel`) — base class, `IDisposable`.

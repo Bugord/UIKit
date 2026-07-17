@@ -1,0 +1,19 @@
+{
+    "name": "UIKit.Samples.Example",
+    "rootNamespace": "",
+    "references": [
+        "UIKit",
+        "UIKit.VContainer",
+        "UniTask",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

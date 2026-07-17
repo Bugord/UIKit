@@ -18,5 +18,12 @@
   "category": "Scripting",
   "dependencies": {
     "com.cysharp.unitask": "2.5.10"
-  }
+  },
+  "samples": [
+    {
+      "displayName": "Example",
+      "description": "Screens, popups, payloads, and result flows wired up end-to-end with VContainer. Open the included scene and press Play.",
+      "path": "Samples~/Example"
+    }
+  ]
 }
