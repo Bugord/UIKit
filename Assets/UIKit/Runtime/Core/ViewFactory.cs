@@ -1,5 +1,4 @@
 using UIKit.Runtime.Abstractions;
-using UIKit.Runtime.Utils;
 using UnityEngine.UIElements;
 
 namespace UIKit.Runtime.Core
@@ -29,12 +28,10 @@ namespace UIKit.Runtime.Core
             view.Bind(viewModel);
 
             var id = UIId.OfScreen(typeof(TViewModel));
-            var root = new VisualElement { name = $"{id}Root" };
-            root.StretchToParent();
-            screenCatalog.Get(id).uxml.CloneTree(root);
+            screenCatalog.Get(id).uxml.CloneTree(container, out var firstElementIndex, out _);
+            var root = container.hierarchy.ElementAt(firstElementIndex);
 
             view.Attach(root);
-            container.Add(view.Root);
 
             return view;
         }
