@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Style src="../Example.uss" />
+    <ui:VisualElement name="profile" class="screen-fill">
+        <ui:VisualElement class="panel">
+            <ui:Label name="name-label" text="Welcome!" class="title" />
+            <ui:Button name="back-button" text="Back" class="menu-button" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

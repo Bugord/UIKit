@@ -14,13 +14,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: UIToolkitMVVM::UIKit.Runtime.Core.ScreenCatalog
   entries:
   - screenId: Confirmation
-    uxml: {fileID: 9197481963319205126, guid: 4d819347df7dbaa4b819cd0d32f6c199, type: 3}
-    layer: 0
+    uxml: {fileID: 9197481963319205126, guid: dfaa6ad801772e04cb3ad4548bca130e, type: 3}
+    layer: 1
     popupOptions:
       cancelOnBackdropClick: 1
       cancelOnNavigationCancel: 1
   - screenId: MainMenu
     uxml: {fileID: 9197481963319205126, guid: 4d819347df7dbaa4b819cd0d32f6c199, type: 3}
+    layer: 0
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1
+  - screenId: Profile
+    uxml: {fileID: 9197481963319205126, guid: 59589cb1e91049442ab99fdaf2a6b972, type: 3}
+    layer: 0
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1
+  - screenId: RenameName
+    uxml: {fileID: 9197481963319205126, guid: a54b239648653b742a3d34a7072779de, type: 3}
+    layer: 1
+    popupOptions:
+      cancelOnBackdropClick: 1
+      cancelOnNavigationCancel: 1
+  - screenId: Settings
+    uxml: {fileID: 9197481963319205126, guid: 3a8e12ce5348698419751b99d1743190, type: 3}
     layer: 0
     popupOptions:
       cancelOnBackdropClick: 1

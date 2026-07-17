@@ -1,0 +1,62 @@
+.screen-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+.popup-backdrop {
+    background-color: rgba(0, 0, 0, 0.55);
+}
+
+.panel {
+    width: 360px;
+    padding: 24px;
+    align-items: stretch;
+    background-color: rgb(35, 35, 42);
+    border-radius: 8px;
+}
+
+.title {
+    font-size: 24px;
+    -unity-font-style: bold;
+    color: rgb(240, 240, 240);
+    -unity-text-align: middle-center;
+    margin-bottom: 16px;
+}
+
+.menu-button {
+    margin-bottom: 8px;
+    height: 36px;
+}
+
+.status-label {
+    margin-top: 12px;
+    color: rgb(200, 200, 200);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.message-label {
+    color: rgb(230, 230, 230);
+    -unity-text-align: middle-center;
+    white-space: normal;
+    margin-bottom: 16px;
+}
+
+.button-row {
+    flex-direction: row;
+    justify-content: space-between;
+}
+
+.button-row Button {
+    flex-grow: 1;
+    height: 36px;
+}
+
+.button-left {
+    margin-right: 8px;
+}

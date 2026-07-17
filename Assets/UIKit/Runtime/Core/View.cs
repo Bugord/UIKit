@@ -8,9 +8,9 @@ namespace UIKit.Runtime.Core
     public abstract class View<TViewModel> : IView where TViewModel : ViewModel
     {
         public VisualElement Root { get; private set; }
-        public TViewModel ViewModel { get; }
+        public TViewModel ViewModel { get; private set; }
 
-        protected View(TViewModel viewModel)
+        public void Bind(TViewModel viewModel)
         {
             ViewModel = viewModel;
         }

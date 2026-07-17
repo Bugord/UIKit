@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
@@ -43,8 +44,7 @@ namespace UIKit.Runtime.Core
             CancellationToken token = default)
             where TViewModel : ResultViewModel<TResult>, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>();
-            view.ViewModel.SetPayload(payload);
+            var view = ResolveViewInternal<TViewModel>(vm => vm.SetPayload(payload));
 
             var activeScreen = new ActiveScreen(view.ViewModel, view);
             activeScreens.Add(activeScreen);
@@ -70,8 +70,7 @@ namespace UIKit.Runtime.Core
             CancellationToken token = default)
             where TViewModel : ViewModel, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>();
-            view.ViewModel.SetPayload(payload);
+            var view = ResolveViewInternal<TViewModel>(vm => vm.SetPayload(payload));
 
             activeScreens.Add(new ActiveScreen(view.ViewModel, view));
             await view.ShowAsync(token);
@@ -92,13 +91,19 @@ namespace UIKit.Runtime.Core
             return activeScreens.Any(screen => screen.ViewModel == viewModel);
         }
 
-        private View<TViewModel> ResolveViewInternal<TViewModel>() where TViewModel : ViewModel
+        private View<TViewModel> ResolveViewInternal<TViewModel>(Action<TViewModel> beforeAttach = null)
+            where TViewModel : ViewModel
         {
+            var viewModel = screenResolver.Resolve<TViewModel>();
+            beforeAttach?.Invoke(viewModel);
+
             var view = screenResolver.ResolveView<TViewModel>();
+            view.Bind(viewModel);
 
             var viewModelId = UIId.OfScreen(typeof(TViewModel));
             var root = new VisualElement { name = $"{viewModelId}Root" };
-            
+            root.StretchToParent();
+
             var entry = screensCatalog.Get(viewModelId);
             entry.uxml.CloneTree(root);
             view.Attach(root);

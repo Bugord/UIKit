@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+>
+    <ui:Style src="../Example.uss" />
+    <ui:VisualElement name="rename-name" class="screen-fill popup-backdrop">
+        <ui:VisualElement class="panel">
+            <ui:Label text="Enter your name" class="message-label" />
+            <ui:TextField name="name-field" style="margin-bottom: 16px;" />
+            <ui:VisualElement class="button-row">
+                <ui:Button name="ok-button" text="OK" class="button-left" />
+                <ui:Button name="cancel-button" text="Cancel" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,4 +1,5 @@
 using System;
+using UIKit.Runtime.Utils;
 using UnityEngine;
 using UnityEngine.UIElements;
 using VContainer.Unity;
@@ -23,6 +24,11 @@ namespace UIKit.Runtime.Core
 
         public void Initialize()
         {
+            screenRoot = new VisualElement { name = ScreenRootName };
+            popupsRoot = new VisualElement { name = PopupsRootName };
+            screenRoot.StretchToParent();
+            popupsRoot.StretchToParent();
+
             var go = new GameObject(RootObjectName);
             UnityEngine.Object.DontDestroyOnLoad(go);
 
@@ -47,9 +53,6 @@ namespace UIKit.Runtime.Core
 
         private void OnRegisterUIReload(PanelRenderer renderer, VisualElement newRoot)
         {
-            screenRoot = new VisualElement { name = ScreenRootName };
-            popupsRoot = new VisualElement { name = PopupsRootName };
-            
             newRoot.Add(screenRoot);
             newRoot.Add(popupsRoot);
         }
@@ -65,9 +68,6 @@ namespace UIKit.Runtime.Core
                 throw new InvalidOperationException(
                     $"{nameof(UIRootProvider)}: {nameof(UIDocument)} did not produce a root VisualElement.");
             }
-
-            screenRoot = new VisualElement { name = ScreenRootName };
-            popupsRoot = new VisualElement { name = PopupsRootName };
 
             root.Add(screenRoot);
             root.Add(popupsRoot);
