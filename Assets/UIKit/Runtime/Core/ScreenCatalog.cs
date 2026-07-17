@@ -41,7 +41,14 @@ namespace UIKit.Runtime.Core
         public Entry Get(string screenId)
         {
             lookup ??= BuildLookup();
-            return lookup.GetValueOrDefault(screenId);
+
+            if (!lookup.TryGetValue(screenId, out var entry)) {
+                throw new InvalidOperationException(
+                    $"ScreenCatalog: no entry registered for screen id '{screenId}'. " +
+                    "Sync the catalog via Project Settings > UI Kit > Sync with code.");
+            }
+
+            return entry;
         }
  
         private Dictionary<string, Entry> BuildLookup()

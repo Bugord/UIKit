@@ -29,12 +29,14 @@ namespace UIKit.Runtime.Core
 
         public virtual UniTask ShowAsync(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             Root.style.display = DisplayStyle.Flex;
             return UniTask.CompletedTask;
         }
 
         public virtual UniTask HideAsync(CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             Root.style.display = DisplayStyle.None;
             return UniTask.CompletedTask;
         }

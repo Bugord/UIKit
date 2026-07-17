@@ -37,10 +37,15 @@ namespace UIKit.Runtime.Core
             var activeView = new ActiveView(view.ViewModel, view);
 
             await PushAsync(activeView, layer, popupOptions, token);
-            var result = await view.ViewModel.WaitForResultAsync(token);
-            await CloseInternal(activeView, token);
 
-            return result;
+            try {
+                return await view.ViewModel.WaitForResultAsync(token);
+            } finally {
+                // Cleanup must run even if the wait was cancelled, so use a token that
+                // can't itself be cancelled - otherwise a cancelled RunAsync leaves the
+                // view visible and never removed from the active/popup stacks.
+                await CloseInternal(activeView, CancellationToken.None);
+            }
         }
 
         public async UniTask<TResult> RunAsync<TViewModel, TPayload, TResult>(TPayload payload,
@@ -52,10 +57,12 @@ namespace UIKit.Runtime.Core
             var activeView = new ActiveView(view.ViewModel, view);
 
             await PushAsync(activeView, layer, popupOptions, token);
-            var result = await view.ViewModel.WaitForResultAsync(token);
-            await CloseInternal(activeView, token);
 
-            return result;
+            try {
+                return await view.ViewModel.WaitForResultAsync(token);
+            } finally {
+                await CloseInternal(activeView, CancellationToken.None);
+            }
         }
 
         public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel>(CancellationToken token = default)
@@ -115,22 +122,37 @@ namespace UIKit.Runtime.Core
         {
             activeScreens.Add(activeView);
 
-            if (layer == UILayer.Screen) {
-                if (screenStack.Count > 0) {
-                    await screenStack[^1].View.HideAsync(token);
+            try {
+                if (layer == UILayer.Screen) {
+                    if (screenStack.Count > 0) {
+                        await screenStack[^1].View.HideAsync(token);
+                    }
+
+                    screenStack.Add(activeView);
                 }
 
-                screenStack.Add(activeView);
+                await activeView.View.ShowAsync(token);
+
+                if (layer == UILayer.Popup) {
+                    popupStack.Add(activeView);
+                    RegisterPopupCancelBehaviour(activeView, popupOptions);
+                }
+
+                SetTopInteractive(CurrentTop());
+            } catch {
+                // A failed/cancelled push (e.g. mid Show/HideAsync) must not leave the
+                // view attached and untracked, or the previous top screen stuck hidden.
+                activeScreens.Remove(activeView);
+                screenStack.Remove(activeView);
+                popupStack.Remove(activeView);
+                activeView.View.Dispose();
+
+                if (layer == UILayer.Screen && screenStack.Count > 0) {
+                    await screenStack[^1].View.ShowAsync(CancellationToken.None);
+                }
+
+                throw;
             }
-
-            await activeView.View.ShowAsync(token);
-
-            if (layer == UILayer.Popup) {
-                popupStack.Add(activeView);
-                RegisterPopupCancelBehaviour(activeView, popupOptions);
-            }
-
-            SetTopInteractive(CurrentTop());
         }
 
         private static void RegisterPopupCancelBehaviour(ActiveView activeView, PopupOptions popupOptions)
