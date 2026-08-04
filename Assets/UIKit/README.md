@@ -39,7 +39,9 @@ Package Manager → UIKit → Samples, then open its scene and press Play.
    ```
 
 3. **Write a View and matching UXML.** The UXML file must be named the same as
-   the screen id (`MainMenu.uxml`) so auto-sync can match it to the catalog.
+   the screen id (`MainMenu.uxml`) so auto-sync can match it to the catalog, and
+   must have exactly one root element — a view exposes a single `Root`, and
+   sibling roots would be left behind in the layer when it is disposed.
 
    ```csharp
    public class MainMenuView : View<MainMenuViewModel>
@@ -73,6 +75,176 @@ Package Manager → UIKit → Samples, then open its scene and press Play.
    await navigator.OpenAsync<MainMenuViewModel>();
    ```
 
+## Usage
+
+Every ViewModel and View pair below needs one line in your `LifetimeScope`:
+
+```csharp
+builder.RegisterScreen<SettingsViewModel, SettingsView>();
+```
+
+### A screen that closes itself
+
+A ViewModel takes `IScreenNavigator` from the container and calls `CloseAsync(this)`.
+The View reads and writes the ViewModel, never the other way around.
+
+```csharp
+public class SettingsViewModel : ViewModel
+{
+    private readonly IScreenNavigator navigator;
+
+    public float Volume { get; private set; } = 0.5f;
+
+    public SettingsViewModel(IScreenNavigator navigator)
+    {
+        this.navigator = navigator;
+    }
+
+    public void SetVolume(float volume) => Volume = volume;
+
+    public UniTask CloseAsync() => navigator.CloseAsync(this);
+}
+
+public class SettingsView : View<SettingsViewModel>
+{
+    protected override void OnAttach()
+    {
+        var slider = Root.Q<Slider>("volume-slider");
+        slider.value = ViewModel.Volume;
+        slider.RegisterValueChangedCallback(evt => ViewModel.SetVolume(evt.newValue));
+
+        Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
+    }
+}
+```
+
+`clicked` handlers are `void`, so navigation is started with `.Forget()`. When you
+need the result, call an `async UniTaskVoid` method instead — see below.
+
+### A popup that returns a value
+
+Derive from `PopupViewModel<TResult>` and supply the result used when the popup is
+dismissed. Auto-sync puts these on the popup layer, so backdrop clicks and
+Escape/gamepad-cancel resolve them via `Cancel()` without any extra wiring.
+
+```csharp
+[UIScreen("Confirmation")]
+public class ConfirmPopupViewModel : PopupViewModel<bool>
+{
+    protected override bool CancelResult => false;
+}
+
+public class ConfirmPopupView : View<ConfirmPopupViewModel>
+{
+    protected override void OnAttach()
+    {
+        Root.Q<Button>("yes-button").clicked += () => ViewModel.SetResult(true);
+        Root.Q<Button>("no-button").clicked += ViewModel.Cancel;
+    }
+}
+```
+
+`RunAsync` shows it, waits for a result, then hides and disposes it:
+
+```csharp
+var confirmed = await navigator.RunAsync<ConfirmPopupViewModel, bool>();
+```
+
+The `[UIScreen]` attribute is optional — it pins the id (and so the UXML file name)
+when you don't want the one derived from the type name. Without it this screen's id
+would be `ConfirmPopup`.
+
+### Passing data in
+
+Implement `IPayloadReceiver<TPayload>`; the payload arrives before the View attaches,
+so `OnAttach` can already read it.
+
+```csharp
+[UIScreen("RenameName")]
+public class NameInputPopupViewModel : PopupViewModel<string>, IPayloadReceiver<string>
+{
+    public string InitialName { get; private set; } = string.Empty;
+
+    protected override string CancelResult => InitialName;
+
+    public void SetPayload(string payload) => InitialName = payload;
+}
+```
+
+Both entry points take a payload overload — `RunAsync<TViewModel, TPayload, TResult>`
+for a value, `OpenAsync<TViewModel, TPayload>` for a screen you keep around:
+
+```csharp
+var newName = await navigator.RunAsync<NameInputPopupViewModel, string, string>(playerName);
+var handle = await navigator.OpenAsync<ProfileViewModel, string>(playerName);
+```
+
+### Keeping a handle
+
+`OpenAsync` returns a `ScreenHandle<TViewModel>` exposing `ViewModel`, `IsOpen`, and
+`CloseAsync()`. It's the idiomatic way to avoid opening the same screen twice:
+
+```csharp
+private ScreenHandle<SettingsViewModel> settingsHandle;
+
+public async UniTask OpenSettingsAsync()
+{
+    if (settingsHandle is { IsOpen: true }) {
+        return;
+    }
+
+    settingsHandle = await navigator.OpenAsync<SettingsViewModel>();
+}
+```
+
+### Awaiting a result from a View
+
+```csharp
+public class MainMenuView : View<MainMenuViewModel>
+{
+    private Label statusLabel;
+
+    protected override void OnAttach()
+    {
+        statusLabel = Root.Q<Label>("status-label");
+        Root.Q<Button>("play-button").clicked += () => PlayAsync().Forget();
+    }
+
+    private async UniTaskVoid PlayAsync()
+    {
+        var confirmed = await ViewModel.StartGameAsync();
+        statusLabel.text = confirmed ? "Game started!" : "Start cancelled.";
+    }
+}
+```
+
+### Composing views
+
+A View can build child views into any element of its own tree through `ViewFactory`.
+These are not tracked by the navigator, so dispose them yourself:
+
+```csharp
+public class ProfileView : View<ProfileViewModel>
+{
+    private PlayerBadgeView badgeView;
+
+    protected override void OnAttach()
+    {
+        var container = Root.Q<VisualElement>("badge-container");
+        badgeView = ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(ViewModel.Badge, container);
+    }
+
+    public override void Dispose()
+    {
+        badgeView.Dispose();
+        base.Dispose();
+    }
+}
+```
+
+Child views still need registering (`RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>()`)
+and still need a catalog entry, so `PlayerBadge.uxml` has to exist like any other.
+
 ## What's included
 
 - **ViewModel** (`UIKit.Runtime.Abstractions.ViewModel`) — base class, `IDisposable`.
@@ -91,6 +263,10 @@ Package Manager → UIKit → Samples, then open its scene and press Play.
   - `RunAsync<TViewModel, TResult>` / `RunAsync<TViewModel, TPayload, TResult>` →
     shows the view, awaits `ResultViewModel.WaitForResultAsync`, hides, and returns
     the result (used for modal/popup flows).
+  - Transitions are serialised: a call made while another transition is still
+    running is queued and applied in call order, so overlapping navigation can't
+    interleave. `RunAsync`'s wait for a result is *not* part of that — an open
+    modal never blocks other navigation.
 - **ScreenCatalog** — a `ScriptableObject` (create via
   `Assets/Create/UIKit/Screen Catalog`) mapping screen id → `VisualTreeAsset`
   (+ layer and popup options). Kept in sync with your ViewModel types by an
@@ -101,6 +277,22 @@ Package Manager → UIKit → Samples, then open its scene and press Play.
   provider, resolver, and navigator into a VContainer `IContainerBuilder`. Kept in
   its own assembly so the core package has no *build-time* opt-out, but the
   integration itself can be omitted from a project that doesn't use VContainer.
+
+## Things to know
+
+- **Don't `await` a navigator call from `OnAttach`, `ShowAsync` or `HideAsync`.**
+  Those run as part of a transition, so awaiting another one waits on an operation
+  that can't start until the current one finishes. Use `.Forget()` to queue it.
+- **A view owns its ViewModel.** `View.Dispose` disposes the bound ViewModel, and
+  the navigator disposes the view when the screen closes. Child views you create
+  yourself via `ViewFactory` are *not* tracked — dispose them from the parent's
+  `Dispose` override (see `ProfileView` in the sample).
+- **Closing is not instant.** `IsOpen` reports `false` as soon as a close starts,
+  not when its hide animation ends, so re-entrancy guards like
+  `if (handle is { IsOpen: true }) return;` behave sensibly during transitions.
+- **A screen with no UXML fails the build.** `Project Settings > UI Kit` lists any
+  unresolved entries, and a build preprocessor fails the build naming them rather
+  than letting it surface as an exception when the screen is first opened.
 
 ## Package layout
 

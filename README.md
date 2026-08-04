@@ -1,15 +1,19 @@
-# UI Toolkit MVVM
+# UIKit
 
-An MVVM framework for Unity's UI Toolkit: views, view models, widgets, and screen/popup navigation, with an optional VContainer integration.
+An MVVM framework for Unity's UI Toolkit: views, view models, and screen/popup
+navigation, with an optional VContainer integration.
 
-This repository is the Unity project used to develop and test the package. The package itself lives in [`Assets/UIToolkitMVVM`](Assets/UIToolkitMVVM) and can be added to any Unity project independently of this project.
+This repository is the Unity project used to develop and test the package. The
+package itself lives in [`Assets/UIKit`](Assets/UIKit) and can be added to any
+Unity project independently of this one.
 
 ## Installing
 
-Add it to your project via the Unity Package Manager, using the Git URL with a `path` query pointing at the package folder:
+Add it via the Unity Package Manager, using the Git URL with a `path` query
+pointing at the package folder:
 
 ```
-https://github.com/Bugord/UI-Tookit-MVVM.git?path=Assets/UIToolkitMVVM
+https://github.com/Bugord/UIKit.git?path=Assets/UIKit
 ```
 
 Package Manager → `+` → *Add package from git URL...* → paste the URL above.
@@ -17,32 +21,21 @@ Package Manager → `+` → *Add package from git URL...* → paste the URL abov
 Requires:
 - Unity 6000.0+
 - [UniTask](https://github.com/Cysharp/UniTask) (`com.cysharp.unitask`)
-- [VContainer](https://github.com/hadashiA/VContainer) — only if you use the bundled VContainer integration (`Runtime/Integrations/VContainer`)
+- [VContainer](https://github.com/hadashiA/VContainer) — only if you use the bundled VContainer integration
 
-## What's included
+## Documentation
 
-- **Views** (`UIToolkitMVVM.Views`) — `IView`, `View<TModel>`, and result-returning variants `IResultView<TResult>` / `ResultView<TViewModel, TResult>` for views that resolve with a value (e.g. a confirmation dialog).
-- **ViewModels** (`UIToolkitMVVM.ViewModels`) — `ViewModel` base class, and `ResultViewModel<TResult>` for awaiting a result via UniTask.
-- **Navigation** (`UIToolkitMVVM.Navigation`) — `IUIService` for showing/hiding screens and popups (`ShowScreenAsync`, `ShowPopupAsync`, `ShowScreenAndWaitResultAsync`, ...), backed by `UIService`, `IUIScreenTemplateRegistry`/`UITemplateRegistry` for resolving `VisualTreeAsset`s by id, and `RootPanelProvider` for the root `UIDocument`.
-- **Widgets** (`UIToolkitMVVM.Widgets`) — `IWidget`/`Widget<TModel>` for reusable sub-views, and `WidgetsHost` to attach them to a `VisualElement` via `IWidgetFactory` and `IWidgetTemplateRegistry`.
-- **VContainer integration** (`UIToolkitMVVM.VContainer`, under `Runtime/Integrations/VContainer`) — `VContainerUIViewFactory` and `VContainerWidgetFactory`, resolving screens/widgets through VContainer's `IObjectResolver`. Kept in a separate assembly so the core package has no hard dependency on VContainer.
+See the [package README](Assets/UIKit/README.md) for the quickstart, the API
+overview, and behaviour notes. Release history is in
+[CHANGELOG.md](Assets/UIKit/CHANGELOG.md).
 
-## Package layout
+## Working in this repository
 
-```
-Assets/UIToolkitMVVM/
-  package.json
-  Runtime/
-    UIToolkitMVVM.asmdef
-    Navigation/
-    ViewModels/
-    Views/
-    Widgets/
-    Utils/
-    Integrations/
-      VContainer/
-        UIToolkitMVVM.VContainer.asmdef
-```
+- `Assets/UIKit/` — the package as published.
+- `Assets/Example/` — the sample as a live, editable part of this project.
+- `Assets/UIKit/Samples~/Example/` — the same sample, packaged for distribution
+  via Package Manager → UIKit → Samples. Unity ignores `Samples~` folders, so
+  changes made in `Assets/Example` must be mirrored here to ship.
 
 ## License
 

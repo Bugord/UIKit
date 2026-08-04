@@ -8,6 +8,16 @@ using UnityEngine.UIElements;
 
 namespace UIKit.Runtime.Core
 {
+    /// <summary>
+    /// Opens, closes and stacks screens and popups. Transitions are serialised, so calls
+    /// made while another transition is running queue up and apply in call order.
+    /// </summary>
+    /// <remarks>
+    /// A transition runs your <see cref="View{TViewModel}.OnAttach"/>, ShowAsync and
+    /// HideAsync while the navigation queue is held, so do not <c>await</c> another
+    /// navigator call from inside them - it would wait on an operation that cannot start
+    /// until the current one finishes. Call <c>.Forget()</c> to queue it instead.
+    /// </remarks>
     public class ScreenNavigator : IScreenNavigator
     {
         private readonly IScreenResolver screenResolver;
@@ -18,6 +28,7 @@ namespace UIKit.Runtime.Core
         private readonly List<ActiveView> activeScreens = new();
         private readonly List<ActiveView> screenStack = new();
         private readonly List<ActiveView> popupStack = new();
+        private readonly NavigationGate gate = new();
 
         private ActiveView topInteractive;
 
@@ -33,18 +44,16 @@ namespace UIKit.Runtime.Core
         public async UniTask<TResult> RunAsync<TViewModel, TResult>(CancellationToken token = default)
             where TViewModel : ResultViewModel<TResult>
         {
-            var view = ResolveViewInternal<TViewModel>(out var layer, out var popupOptions);
-            var activeView = new ActiveView(view.ViewModel, view);
-
-            await PushAsync(activeView, layer, popupOptions, token);
+            var activeView = await PushExclusiveAsync<TViewModel>(null, token);
 
             try {
-                return await view.ViewModel.WaitForResultAsync(token);
+                // Deliberately outside the gate - this waits on the user, and holding the
+                // gate here would stall every other navigation until the view closes.
+                return await ((TViewModel)activeView.ViewModel).WaitForResultAsync(token);
             } finally {
-                // Cleanup must run even if the wait was cancelled, so use a token that
-                // can't itself be cancelled - otherwise a cancelled RunAsync leaves the
-                // view visible and never removed from the active/popup stacks.
-                await CloseInternal(activeView, CancellationToken.None);
+                // CancellationToken.None so a cancelled wait still plays the hide
+                // animation rather than snapping the view away mid-transition.
+                await CloseExclusiveAsync(activeView, CancellationToken.None);
             }
         }
 
@@ -52,54 +61,85 @@ namespace UIKit.Runtime.Core
             CancellationToken token = default)
             where TViewModel : ResultViewModel<TResult>, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>(out var layer, out var popupOptions,
-                vm => vm.SetPayload(payload));
-            var activeView = new ActiveView(view.ViewModel, view);
-
-            await PushAsync(activeView, layer, popupOptions, token);
+            var activeView = await PushExclusiveAsync<TViewModel>(vm => vm.SetPayload(payload), token);
 
             try {
-                return await view.ViewModel.WaitForResultAsync(token);
+                return await ((TViewModel)activeView.ViewModel).WaitForResultAsync(token);
             } finally {
-                await CloseInternal(activeView, CancellationToken.None);
+                await CloseExclusiveAsync(activeView, CancellationToken.None);
             }
         }
 
         public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel>(CancellationToken token = default)
             where TViewModel : ViewModel
         {
-            var view = ResolveViewInternal<TViewModel>(out var layer, out var popupOptions);
-            var activeView = new ActiveView(view.ViewModel, view);
+            var activeView = await PushExclusiveAsync<TViewModel>(null, token);
 
-            await PushAsync(activeView, layer, popupOptions, token);
-
-            return new ScreenHandle<TViewModel>(this, view.ViewModel);
+            return new ScreenHandle<TViewModel>(this, (TViewModel)activeView.ViewModel);
         }
 
         public async UniTask<ScreenHandle<TViewModel>> OpenAsync<TViewModel, TPayload>(TPayload payload,
             CancellationToken token = default)
             where TViewModel : ViewModel, IPayloadReceiver<TPayload>
         {
-            var view = ResolveViewInternal<TViewModel>(out var layer, out var popupOptions,
-                vm => vm.SetPayload(payload));
-            var activeView = new ActiveView(view.ViewModel, view);
+            var activeView = await PushExclusiveAsync<TViewModel>(vm => vm.SetPayload(payload), token);
 
-            await PushAsync(activeView, layer, popupOptions, token);
-
-            return new ScreenHandle<TViewModel>(this, view.ViewModel);
+            return new ScreenHandle<TViewModel>(this, (TViewModel)activeView.ViewModel);
         }
 
-        public UniTask CloseAsync<TViewModel>(TViewModel viewModel, CancellationToken token = default)
+        public async UniTask CloseAsync<TViewModel>(TViewModel viewModel, CancellationToken token = default)
             where TViewModel : ViewModel
         {
-            var activeView = activeScreens.Find(x => x.ViewModel == viewModel);
-            return activeView != null ? CloseInternal(activeView, token) : UniTask.CompletedTask;
+            await gate.WaitAsync();
+
+            try {
+                // Looked up under the gate so the view cannot be closed by another
+                // operation between finding it here and starting its transition.
+                var activeView = activeScreens.Find(x => x.ViewModel == viewModel);
+
+                if (activeView != null) {
+                    await CloseInternal(activeView, token);
+                }
+            } finally {
+                gate.Release();
+            }
         }
 
         public bool IsOpen<TViewModel>(TViewModel viewModel)
             where TViewModel : ViewModel
         {
             return activeScreens.Any(screen => screen.ViewModel == viewModel);
+        }
+
+        // Resolving, attaching and pushing all touch the shared stacks, and the pushes
+        // themselves await animations, so the whole sequence has to run under the gate.
+        private async UniTask<ActiveView> PushExclusiveAsync<TViewModel>(Action<TViewModel> beforeAttach,
+            CancellationToken token)
+            where TViewModel : ViewModel
+        {
+            await gate.WaitAsync();
+
+            try {
+                var view = ResolveViewInternal(out var layer, out var popupOptions, beforeAttach);
+                var activeView = new ActiveView(view.ViewModel, view);
+
+                await PushAsync(activeView, layer, popupOptions, token);
+
+                return activeView;
+            } finally {
+                gate.Release();
+            }
+        }
+
+        private async UniTask CloseExclusiveAsync(ActiveView activeView, CancellationToken token)
+        {
+            await gate.WaitAsync();
+
+            try {
+                await CloseInternal(activeView, token);
+            } finally {
+                gate.Release();
+            }
         }
 
         private View<TViewModel> ResolveViewInternal<TViewModel>(out UILayer layer, out PopupOptions popupOptions,
@@ -205,10 +245,26 @@ namespace UIKit.Runtime.Core
 
         private async UniTask CloseInternal(ActiveView activeView, CancellationToken token)
         {
-            await activeView.View.HideAsync(token);
+            // Untrack synchronously: a second close for the same view can arrive while the
+            // hide animation below is still awaiting, and would otherwise dispose it twice.
+            if (!activeScreens.Remove(activeView)) {
+                return;
+            }
+
+            try {
+                await activeView.View.HideAsync(token);
+            } finally {
+                await DetachAsync(activeView);
+            }
+        }
+
+        // Detaching is cleanup, so it takes no token and must complete even when the hide
+        // animation above was cancelled - otherwise the view stays attached and undisposed,
+        // and the screen underneath stays hidden forever.
+        private async UniTask DetachAsync(ActiveView activeView)
+        {
             activeView.View.Dispose();
 
-            activeScreens.Remove(activeView);
             popupStack.Remove(activeView);
 
             var stackIndex = screenStack.IndexOf(activeView);
@@ -217,7 +273,7 @@ namespace UIKit.Runtime.Core
                 screenStack.RemoveAt(stackIndex);
 
                 if (wasTop && screenStack.Count > 0) {
-                    await screenStack[^1].View.ShowAsync(token);
+                    await screenStack[^1].View.ShowAsync(CancellationToken.None);
                 }
             }
 
