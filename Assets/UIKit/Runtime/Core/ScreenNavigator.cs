@@ -20,7 +20,7 @@ namespace UIKit.Runtime.Core
     /// </remarks>
     public class ScreenNavigator : IScreenNavigator
     {
-        private readonly IScreenResolver screenResolver;
+        private readonly ScreenRegistry screenRegistry;
         private readonly IViewFactory viewFactory;
         private readonly IUIRootProvider uiRootProvider;
         private readonly ScreenCatalog screensCatalog;
@@ -32,10 +32,10 @@ namespace UIKit.Runtime.Core
 
         private ActiveView topInteractive;
 
-        public ScreenNavigator(IScreenResolver screenResolver, IViewFactory viewFactory,
+        public ScreenNavigator(ScreenRegistry screenRegistry, IViewFactory viewFactory,
             IUIRootProvider uiRootProvider, ScreenCatalog screensCatalog)
         {
-            this.screenResolver = screenResolver;
+            this.screenRegistry = screenRegistry;
             this.viewFactory = viewFactory;
             this.screensCatalog = screensCatalog;
             this.uiRootProvider = uiRootProvider;
@@ -111,6 +111,46 @@ namespace UIKit.Runtime.Core
             return activeScreens.Any(screen => screen.ViewModel == viewModel);
         }
 
+        /// <summary>
+        /// Force-closes every screen that was opened from <paramref name="owner"/>'s scope,
+        /// without playing hide animations. Called as that scope is disposed.
+        /// </summary>
+        /// <remarks>
+        /// Synchronous and ungated, unlike every other close. By the time a scope is being
+        /// disposed the services its ViewModels hold are already going away, so awaiting a
+        /// hide animation would run view code against a half-torn-down scope - and scope
+        /// disposal gives us nowhere to await from in any case. For the same reason this does
+        /// not take the navigation gate: a transition still in flight when its own scope dies
+        /// cannot be salvaged, and blocking teardown on it would only strand the UI.
+        /// </remarks>
+        public void DisposeScreensOwnedBy(object owner)
+        {
+            var previousTopScreen = screenStack.Count > 0 ? screenStack[^1] : null;
+
+            for (var i = activeScreens.Count - 1; i >= 0; i--) {
+                var activeView = activeScreens[i];
+
+                if (!ReferenceEquals(activeView.Owner, owner)) {
+                    continue;
+                }
+
+                activeScreens.RemoveAt(i);
+                screenStack.Remove(activeView);
+                popupStack.Remove(activeView);
+                activeView.View.Dispose();
+            }
+
+            var topScreen = screenStack.Count > 0 ? screenStack[^1] : null;
+
+            // Whatever is now top of the screen stack was hidden when the screen above it
+            // opened, so it has to be shown again - same as an ordinary close would.
+            if (topScreen != null && topScreen != previousTopScreen) {
+                topScreen.View.ShowAsync(CancellationToken.None).Forget();
+            }
+
+            SetTopInteractive(CurrentTop());
+        }
+
         // Resolving, attaching and pushing all touch the shared stacks, and the pushes
         // themselves await animations, so the whole sequence has to run under the gate.
         private async UniTask<ActiveView> PushExclusiveAsync<TViewModel>(Action<TViewModel> beforeAttach,
@@ -120,8 +160,7 @@ namespace UIKit.Runtime.Core
             await gate.WaitAsync();
 
             try {
-                var view = ResolveViewInternal(out var layer, out var popupOptions, beforeAttach);
-                var activeView = new ActiveView(view.ViewModel, view);
+                var activeView = ResolveViewInternal(out var layer, out var popupOptions, beforeAttach);
 
                 await PushAsync(activeView, layer, popupOptions, token);
 
@@ -142,11 +181,12 @@ namespace UIKit.Runtime.Core
             }
         }
 
-        private View<TViewModel> ResolveViewInternal<TViewModel>(out UILayer layer, out PopupOptions popupOptions,
+        private ActiveView ResolveViewInternal<TViewModel>(out UILayer layer, out PopupOptions popupOptions,
             Action<TViewModel> beforeAttach = null)
             where TViewModel : ViewModel
         {
-            var viewModel = screenResolver.Resolve<TViewModel>();
+            var binding = screenRegistry.Get(typeof(TViewModel));
+            var viewModel = (TViewModel)binding.CreateViewModel();
             beforeAttach?.Invoke(viewModel);
 
             var entry = screensCatalog.Get(UIId.OfScreen(typeof(TViewModel)));
@@ -154,7 +194,11 @@ namespace UIKit.Runtime.Core
             popupOptions = entry.popupOptions.ToOptions();
             var container = uiRootProvider.GetLayerRoot(layer);
 
-            return viewFactory.Create<View<TViewModel>, TViewModel>(viewModel, container);
+            var view = viewFactory.Create<View<TViewModel>, TViewModel>(viewModel, container);
+
+            // The binding's owner rides along so this screen can be closed with the scope it
+            // came from, whether or not that is the scope the navigator itself lives in.
+            return new ActiveView(viewModel, view, binding.Owner);
         }
 
         private async UniTask PushAsync(ActiveView activeView, UILayer layer, PopupOptions popupOptions,

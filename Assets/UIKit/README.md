@@ -245,6 +245,34 @@ public class ProfileView : View<ProfileViewModel>
 Child views still need registering (`RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>()`)
 and still need a catalog entry, so `PlayerBadge.uxml` has to exist like any other.
 
+### Screens owned by a feature scope
+
+`AddUIKit` goes in one scope — the one that should own the UI root and the navigation
+stack, usually the root. `RegisterScreen` does *not* have to go in that same scope. A
+screen registered in a child `LifetimeScope` resolves its ViewModel from there, so the
+ViewModel can take that scope's services:
+
+```csharp
+// Root scope: installs UIKit and registers the screens that outlive any one feature.
+builder.AddUIKit(screenCatalog, panelSettings);
+builder.RegisterScreen<MainMenuViewModel, MainMenuView>();
+
+// Battle scope: BattleHudViewModel can inject IBattleState, which the root cannot see.
+builder.Register<IBattleState, BattleState>(Lifetime.Scoped);
+builder.RegisterScreen<BattleHudViewModel, BattleHudView>();
+```
+
+There is still exactly one `UIKitRoot`, one panel and one navigation stack, so a popup
+opened from a feature scope stacks over a root screen the way you'd expect.
+
+When the battle scope is disposed, its screens are unregistered and any of them still
+open are closed immediately — without hide animations, since the services they depend on
+are going away at the same moment. Opening one afterwards throws, naming the screen.
+
+Two live scopes can't register the same ViewModel type: a screen belongs to exactly one
+scope, and a duplicate registration throws at scope-build time rather than letting build
+order silently pick a winner.
+
 ## What's included
 
 - **ViewModel** (`UIKit.Runtime.Abstractions.ViewModel`) — base class, `IDisposable`.
@@ -272,11 +300,16 @@ and still need a catalog entry, so `PlayerBadge.uxml` has to exist like any othe
   (+ layer and popup options). Kept in sync with your ViewModel types by an
   editor-only auto-sync step; a "Sync with code" button is also available under
   `Project Settings > UI Kit`.
+- **ScreenRegistry** (`UIKit.Runtime.Core.ScreenRegistry`) — maps a ViewModel type
+  to the `ScreenBinding` that builds it and to the scope that owns it. Scopes add
+  their screens when they build and remove them when they are disposed, which is
+  what lets one navigator open screens belonging to different containers.
 - **VContainer integration** (`UIKit.Runtime.Integrations.VContainer`, separate
   assembly) — `BuilderExtension.AddUIKit`/`RegisterScreen` wire the catalog, root
-  provider, resolver, and navigator into a VContainer `IContainerBuilder`. Kept in
-  its own assembly so the core package has no *build-time* opt-out, but the
-  integration itself can be omitted from a project that doesn't use VContainer.
+  provider, registry, and navigator into a VContainer `IContainerBuilder`, and
+  `ScreenScope` ties each scope's screens to that scope's lifetime. Kept in its own
+  assembly so the core package has no *build-time* opt-out, but the integration
+  itself can be omitted from a project that doesn't use VContainer.
 
 ## Things to know
 
@@ -290,6 +323,9 @@ and still need a catalog entry, so `PlayerBadge.uxml` has to exist like any othe
 - **Closing is not instant.** `IsOpen` reports `false` as soon as a close starts,
   not when its hide animation ends, so re-entrancy guards like
   `if (handle is { IsOpen: true }) return;` behave sensibly during transitions.
+- **A screen dies with the scope that registered it.** Screens registered in a child
+  `LifetimeScope` are force-closed when it is disposed, so don't hold a
+  `ScreenHandle` to one past its scope's lifetime.
 - **A screen with no UXML fails the build.** `Project Settings > UI Kit` lists any
   unresolved entries, and a build preprocessor fails the build naming them rather
   than letting it surface as an exception when the screen is first opened.

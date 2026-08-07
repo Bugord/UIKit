@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (pre-1.0, so minor bumps may include breaking changes).
 
+## [0.4.0] - 2026-08-07
+
+### Added
+- Screens can be registered in any `LifetimeScope`, not only the one that calls
+  `AddUIKit`. A screen registered in a child scope resolves its ViewModel from
+  that scope, so the ViewModel can depend on that scope's services, while the UI
+  root and the navigation stack stay single and shared.
+- `ScreenRegistry`/`ScreenBinding` — the ViewModel type → factory + owning scope
+  lookup the navigator now resolves through.
+- `ScreenScope` (VContainer integration) — one per scope that registers screens.
+  Disposing the scope force-closes its open screens (no hide animations, since
+  their services are going away) and removes its registry entries.
+
+### Changed
+- **Breaking:** `IScreenResolver` and `VContainerScreenResolver` are gone.
+  `ScreenNavigator` and `ViewFactory` take `ScreenRegistry` instead. Code that only
+  calls `AddUIKit`/`RegisterScreen` and injects `IScreenNavigator` is unaffected.
+- **Breaking:** `RegisterScreen` no longer registers the View as
+  `View<TViewModel>`; the registry is the lookup path. Inject the concrete View
+  type if you were resolving it directly.
+- `ActiveView` carries the scope its screen was resolved from.
+- Registering the same ViewModel type in two live scopes now throws at scope-build
+  time instead of silently letting build order decide which one wins.
+
 ## [0.3.0] - 2026-07-18
 
 ### Added

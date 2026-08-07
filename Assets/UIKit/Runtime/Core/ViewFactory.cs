@@ -6,18 +6,20 @@ namespace UIKit.Runtime.Core
 {
     public class ViewFactory : IViewFactory
     {
-        private readonly IScreenResolver screenResolver;
+        private readonly ScreenRegistry screenRegistry;
         private readonly ScreenCatalog screenCatalog;
 
-        public ViewFactory(IScreenResolver screenResolver, ScreenCatalog screenCatalog)
+        public ViewFactory(ScreenRegistry screenRegistry, ScreenCatalog screenCatalog)
         {
-            this.screenResolver = screenResolver;
+            this.screenRegistry = screenRegistry;
             this.screenCatalog = screenCatalog;
         }
 
         public TView Create<TView, TViewModel>() where TView : View<TViewModel> where TViewModel : ViewModel
         {
-            var view = screenResolver.ResolveView<TView, TViewModel>();
+            // The cast holds because the binding was registered with this ViewModel's own
+            // View type: TView is either that type or a base of it.
+            var view = (TView)screenRegistry.Get(typeof(TViewModel)).CreateView();
             view.SetViewFactory(this);
             return view;
         }

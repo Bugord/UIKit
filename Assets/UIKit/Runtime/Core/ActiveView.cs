@@ -1,4 +1,4 @@
-﻿using UIKit.Runtime.Abstractions;
+using UIKit.Runtime.Abstractions;
 
 namespace UIKit.Runtime.Core
 {
@@ -7,10 +7,17 @@ namespace UIKit.Runtime.Core
         public readonly ViewModel ViewModel;
         public readonly IView View;
 
-        public ActiveView(ViewModel viewModel, IView view)
+        /// <summary>
+        /// The scope this screen was resolved from, carried over from its
+        /// <see cref="ScreenBinding"/> so the navigator can close it when that scope dies.
+        /// </summary>
+        public readonly object Owner;
+
+        public ActiveView(ViewModel viewModel, IView view, object owner)
         {
             ViewModel = viewModel;
             View = view;
+            Owner = owner;
         }
     }
 }
