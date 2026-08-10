@@ -218,10 +218,67 @@ public class MainMenuView : View<MainMenuViewModel>
 }
 ```
 
-### Composing views
+### Nested views and view models
 
-A View can build child views into any element of its own tree through `ViewFactory`.
-These are not tracked by the navigator, so dispose them yourself:
+A screen doesn't have to be one View. Any element of a view's tree can host a child view
+built through `ViewFactory`. The child is an ordinary View/ViewModel pair — registered the
+same way, with its own UXML — but the navigator never sees it: the parent owns it.
+
+The child pair looks like any other, it just never gets opened by the navigator:
+
+```csharp
+public class PlayerBadgeViewModel : ViewModel
+{
+    public int Level { get; private set; } = 1;
+    public int Score { get; private set; }
+
+    public void AddScore(int amount) => Score += amount;
+}
+
+public class PlayerBadgeView : View<PlayerBadgeViewModel>
+{
+    private Label scoreLabel;
+
+    protected override void OnAttach()
+    {
+        Root.Q<Label>("level-label").text = $"Level {ViewModel.Level}";
+
+        scoreLabel = Root.Q<Label>("score-label");
+        scoreLabel.text = $"Score: {ViewModel.Score}";
+
+        Root.Q<Button>("add-score-button").clicked += () => {
+            ViewModel.AddScore(10);
+            scoreLabel.text = $"Score: {ViewModel.Score}";
+        };
+    }
+}
+```
+
+The parent ViewModel takes the child ViewModel as a constructor dependency and exposes it.
+`RegisterScreen` registers ViewModels as transient, so the parent gets its own instance:
+
+```csharp
+public class ProfileViewModel : ViewModel, IPayloadReceiver<string>
+{
+    private readonly IScreenNavigator navigator;
+
+    public string PlayerName { get; private set; } = string.Empty;
+    public PlayerBadgeViewModel Badge { get; }
+
+    public ProfileViewModel(IScreenNavigator navigator, PlayerBadgeViewModel badge)
+    {
+        this.navigator = navigator;
+        Badge = badge;
+    }
+
+    public void SetPayload(string payload) => PlayerName = payload;
+
+    public UniTask CloseAsync() => navigator.CloseAsync(this);
+}
+```
+
+The parent View clones the child's UXML into a container element and binds it in one call,
+then disposes it on the way out:
 
 ```csharp
 public class ProfileView : View<ProfileViewModel>
@@ -230,8 +287,11 @@ public class ProfileView : View<ProfileViewModel>
 
     protected override void OnAttach()
     {
-        var container = Root.Q<VisualElement>("badge-container");
-        badgeView = ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(ViewModel.Badge, container);
+        Root.Q<Label>("name-label").text = $"Welcome, {ViewModel.PlayerName}!";
+        Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
+
+        var badgeContainer = Root.Q<VisualElement>("badge-container");
+        badgeView = ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(ViewModel.Badge, badgeContainer);
     }
 
     public override void Dispose()
@@ -242,8 +302,50 @@ public class ProfileView : View<ProfileViewModel>
 }
 ```
 
-Child views still need registering (`RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>()`)
-and still need a catalog entry, so `PlayerBadge.uxml` has to exist like any other.
+Both pairs are registered side by side, in the same scope as any other screen:
+
+```csharp
+builder.RegisterScreen<ProfileViewModel, ProfileView>();
+builder.RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>();
+```
+
+Worth knowing:
+
+- The child needs a catalog entry like any screen, so `PlayerBadge.uxml` has to exist and
+  have exactly one root element. Its layer and popup options are ignored — the UXML is
+  cloned into the container you pass, not into a layer.
+- Nesting goes as deep as you like: `ViewFactory.Create` hands the new view its own
+  `ViewFactory`, so `PlayerBadgeView` can build grandchildren the same way.
+- The navigator only shows, hides and disposes the screen's root view. `ShowAsync` and
+  `HideAsync` are never called on children — if a child animates, forward the call from
+  the parent's override.
+- `badgeView.Dispose()` also disposes `ViewModel.Badge`, because a view owns its ViewModel.
+  Don't dispose the child ViewModel separately.
+
+For a list of children, keep them in a collection and dispose the whole collection whenever
+you rebuild it:
+
+```csharp
+private readonly List<InventorySlotView> slotViews = new();
+
+private void RebuildSlots()
+{
+    foreach (var slotView in slotViews) {
+        slotView.Dispose();
+    }
+
+    slotViews.Clear();
+
+    foreach (var slot in ViewModel.Slots) {
+        slotViews.Add(ViewFactory.Create<InventorySlotView, InventorySlotViewModel>(slot, slotsContainer));
+    }
+}
+```
+
+Each child ViewModel here comes from the parent ViewModel (`ViewModel.Slots`), not from the
+container: this overload only resolves the *view*, so a parent is free to create its child
+ViewModels itself when how many of them there are depends on data. The pair still needs its
+`RegisterScreen<InventorySlotViewModel, InventorySlotView>()` line and its `InventorySlot.uxml`.
 
 ### Screens owned by a feature scope
 
