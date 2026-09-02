@@ -5,11 +5,13 @@ using UnityEngine.UIElements;
 
 namespace UIKit.Runtime.Core
 {
-    public abstract class View<TViewModel> : IView where TViewModel : ViewModel
+    public abstract class View<TViewModel> : IView, IViewBinder where TViewModel : ViewModel
     {
         public VisualElement Root { get; private set; }
         public TViewModel ViewModel { get; private set; }
         protected IViewFactory ViewFactory { get; private set; }
+
+        private bool disposeViewModel = true;
 
         public void Bind(TViewModel viewModel)
         {
@@ -25,6 +27,14 @@ namespace UIKit.Runtime.Core
         internal void SetViewFactory(IViewFactory viewFactory)
         {
             ViewFactory = viewFactory;
+        }
+
+        void IViewBinder.SetViewFactory(IViewFactory viewFactory) => SetViewFactory(viewFactory);
+
+        void IViewBinder.BindModel(ViewModel viewModel, bool disposeViewModel)
+        {
+            Bind((TViewModel)viewModel);
+            this.disposeViewModel = disposeViewModel;
         }
 
         public virtual UniTask ShowAsync(CancellationToken token)
@@ -45,7 +55,10 @@ namespace UIKit.Runtime.Core
         {
             Root?.RemoveFromHierarchy();
             Root = null;
-            ViewModel.Dispose();
+
+            if (disposeViewModel) {
+                ViewModel?.Dispose();
+            }
         }
 
         protected virtual void OnAttach()

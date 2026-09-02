@@ -24,10 +24,44 @@ namespace UIKit.Runtime.Core
             return view;
         }
 
-        public TView Create<TView, TViewModel>(TViewModel viewModel, VisualElement container)
+        public TView Create<TView, TViewModel>(TViewModel viewModel, VisualElement container,
+            bool disposeViewModel = true)
             where TView : View<TViewModel> where TViewModel : ViewModel
         {
             var id = UIId.OfScreen(typeof(TViewModel));
+            var uxml = RequireUxml(id);
+
+            var view = Create<TView, TViewModel>();
+            ((IViewBinder)view).BindModel(viewModel, disposeViewModel);
+
+            CloneAndAttach(view, container, id, uxml);
+
+            return view;
+        }
+
+        public IView Create(ViewModel viewModel, VisualElement container, bool disposeViewModel = true)
+        {
+            if (viewModel == null) {
+                throw new ArgumentNullException(nameof(viewModel));
+            }
+
+            // Resolved by concrete runtime type - the key each RegisterScreen call uses.
+            var viewModelType = viewModel.GetType();
+            var id = UIId.OfScreen(viewModelType);
+            var uxml = RequireUxml(id);
+
+            var view = screenRegistry.Get(viewModelType).CreateView();
+            var binder = (IViewBinder)view;
+            binder.SetViewFactory(this);
+            binder.BindModel(viewModel, disposeViewModel);
+
+            CloneAndAttach(view, container, id, uxml);
+
+            return view;
+        }
+
+        private VisualTreeAsset RequireUxml(string id)
+        {
             var uxml = screenCatalog.Get(id).uxml;
 
             if (uxml == null) {
@@ -37,9 +71,11 @@ namespace UIKit.Runtime.Core
                     "manually in Project Settings > UI Kit.");
             }
 
-            var view = Create<TView, TViewModel>();
-            view.Bind(viewModel);
+            return uxml;
+        }
 
+        private static void CloneAndAttach(IView view, VisualElement container, string id, VisualTreeAsset uxml)
+        {
             uxml.CloneTree(container, out var firstElementIndex, out var elementAddedCount);
 
             if (elementAddedCount != 1) {
@@ -55,8 +91,6 @@ namespace UIKit.Runtime.Core
             }
 
             view.Attach(container.hierarchy.ElementAt(firstElementIndex));
-
-            return view;
         }
 
         private static void RemoveClonedElements(VisualElement container, int firstElementIndex, int count)

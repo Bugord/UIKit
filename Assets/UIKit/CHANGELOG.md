@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (pre-1.0, so minor bumps may include breaking changes).
 
+## [0.5.0] - 2026-09-02
+
+### Added
+- `IViewFactory.Create(ViewModel viewModel, VisualElement container, bool disposeViewModel = true)`
+  — a non-generic overload that resolves the View by the ViewModel's concrete runtime
+  type, for nested children whose subclasses each register their own View. Returns `IView`.
+- `disposeViewModel` (default `true`) on both `Create` overloads that take a ViewModel:
+  pass `false` to stop the returned view from disposing that ViewModel with it, for when a
+  parent owns its lifetime.
+
+### Changed
+- `IViewFactory.Create<TView, TViewModel>(TViewModel, VisualElement)` gained an optional
+  `bool disposeViewModel = true` parameter. Source-compatible; existing calls are unaffected.
+
 ## [0.4.0] - 2026-08-07
 
 ### Added

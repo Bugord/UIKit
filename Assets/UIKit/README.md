@@ -320,7 +320,9 @@ Worth knowing:
   `HideAsync` are never called on children — if a child animates, forward the call from
   the parent's override.
 - `badgeView.Dispose()` also disposes `ViewModel.Badge`, because a view owns its ViewModel.
-  Don't dispose the child ViewModel separately.
+  Don't dispose the child ViewModel separately. If the parent needs to keep that ViewModel
+  alive past the child view (e.g. it hands the same instance to several sibling views), pass
+  `disposeViewModel: false` to `Create`.
 
 For a list of children, keep them in a collection and dispose the whole collection whenever
 you rebuild it:
@@ -346,6 +348,54 @@ Each child ViewModel here comes from the parent ViewModel (`ViewModel.Slots`), n
 container: this overload only resolves the *view*, so a parent is free to create its child
 ViewModels itself when how many of them there are depends on data. The pair still needs its
 `RegisterScreen<InventorySlotViewModel, InventorySlotView>()` line and its `InventorySlot.uxml`.
+
+#### Children whose type isn't known at the call site
+
+When the children share an abstract ViewModel base but each subclass has its own View, the
+generic overload can't help — the call site only has the base type. Register each pair
+normally, then build them through the non-generic overload, which picks the View by the
+ViewModel's concrete runtime type:
+
+```csharp
+public abstract class FeedItemViewModel : ViewModel { }
+public class TextPostViewModel  : FeedItemViewModel { /* ... */ }
+public class ImagePostViewModel : FeedItemViewModel { /* ... */ }
+
+builder.RegisterScreen<TextPostViewModel,  TextPostView>();
+builder.RegisterScreen<ImagePostViewModel, ImagePostView>();
+```
+
+```csharp
+private readonly List<IView> itemViews = new();
+
+private void RebuildFeed()
+{
+    foreach (var itemView in itemViews) {
+        itemView.Dispose();
+    }
+
+    itemViews.Clear();
+
+    foreach (FeedItemViewModel item in ViewModel.Items) {
+        // item.GetType() is TextPostViewModel / ImagePostViewModel -> the right View.
+        itemViews.Add(ViewFactory.Create(item, feedContainer));
+    }
+}
+```
+
+```csharp
+IView Create(ViewModel viewModel, VisualElement container, bool disposeViewModel = true);
+```
+
+- The lookup key is the **concrete** type: only a subclass registered with its own
+  `RegisterScreen<TSubclass, TSubclassView>()` resolves. Passing a ViewModel whose exact
+  type wasn't registered throws, naming it — there is no compile-time check, unlike the
+  generic overloads, which stay preferred whenever the type is known.
+- `disposeViewModel: false` stops the returned view from disposing the ViewModel when the
+  view is disposed — for when the parent (or DI) owns that lifetime. Default `true` matches
+  the generic overloads.
+- The return type is `IView`: `Root`, `Attach`, `ShowAsync`/`HideAsync` and `Dispose` only.
+  Reach the ViewModel through your own model, not the view.
 
 ### Screens owned by a feature scope
 
