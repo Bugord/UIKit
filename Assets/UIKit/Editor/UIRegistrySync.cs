@@ -6,6 +6,7 @@ using UIKit.Runtime.Abstractions;
 using UIKit.Runtime.Core;
 using UIKit.Runtime.Utils;
 using UnityEditor;
+using UnityEditor.Compilation;
 using UnityEngine.UIElements;
 
 namespace UIKit.Editor
@@ -16,8 +17,13 @@ namespace UIKit.Editor
         {
             var report = new SyncReport();
 
+            // TypeCache also returns Editor and test assemblies; a ViewModel declared there never
+            // reaches the player, so a catalog entry for it would only fail the build for a missing UXML.
+            var playerAssemblies = GetPlayerAssemblyNames();
+
             var viewModelTypes = TypeCache.GetTypesDerivedFrom<ViewModel>()
                 .Where(t => !t.IsAbstract && !t.IsGenericTypeDefinition)
+                .Where(t => playerAssemblies.Contains(t.Assembly.GetName().Name))
                 .ToList();
 
             var wanted = new Dictionary<string, Type>();
@@ -58,6 +64,11 @@ namespace UIKit.Editor
             report.Log(nameof(ScreenCatalog));
             return report;
         }
+
+        private static HashSet<string> GetPlayerAssemblyNames() =>
+            CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies)
+                .Select(a => a.name)
+                .ToHashSet();
 
         private static UILayer ResolveLayer(Type vmType) =>
             typeof(IPopup).IsAssignableFrom(vmType) ? UILayer.Popup : UILayer.Screen;
