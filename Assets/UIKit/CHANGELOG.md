@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (pre-1.0, so minor bumps may include breaking changes).
 
-## [Unreleased]
+## [0.5.1] - 2026-10-08
 
 ### Fixed
 - Screen catalog sync no longer registers ViewModels from Editor and test assemblies.
