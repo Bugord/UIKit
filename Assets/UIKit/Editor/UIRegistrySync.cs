@@ -65,10 +65,23 @@ namespace UIKit.Editor
             return report;
         }
 
-        private static HashSet<string> GetPlayerAssemblyNames() =>
-            CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies)
+        private static HashSet<string> GetPlayerAssemblyNames()
+        {
+            var names = CompilationPipeline.GetAssemblies(AssembliesType.PlayerWithoutTestAssemblies)
                 .Select(a => a.name)
                 .ToHashSet();
+
+            // Precompiled DLLs bypass the compilation pipeline; their import settings decide whether
+            // they ship. The importer only knows the file, so a DLL whose file name differs from its
+            // assembly name is not matched.
+            foreach (var plugin in PluginImporter.GetImporters(EditorUserBuildSettings.activeBuildTarget)) {
+                if (!plugin.isNativePlugin) {
+                    names.Add(Path.GetFileNameWithoutExtension(plugin.assetPath));
+                }
+            }
+
+            return names;
+        }
 
         private static UILayer ResolveLayer(Type vmType) =>
             typeof(IPopup).IsAssignableFrom(vmType) ? UILayer.Popup : UILayer.Screen;

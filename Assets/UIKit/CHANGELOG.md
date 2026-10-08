@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (pre-1.0, so minor bumps may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+- Screen catalog sync no longer registers ViewModels from Editor and test assemblies.
+  They never reach the player, yet their UXML-less entries made
+  `ScreenCatalogBuildValidator` fail the build. Entries already in the catalog for such
+  types are removed on the next sync. Precompiled DLLs are included when their import
+  settings ship them to the active build target.
+
 ## [0.5.0] - 2026-09-02
 
 ### Added
