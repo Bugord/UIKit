@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 (pre-1.0, so minor bumps may include breaking changes).
 
+## [Unreleased]
+
+### Fixed
+- Before Unity 6000.5, screens and popups disappeared when the `UIDocument` of the UI root
+  built a new root element, which it does whenever it is enabled again. The navigation stack
+  stayed intact, so nothing showed until the next restart. The layer roots are now added to
+  the new root element within a frame.
+
 ## [0.5.1] - 2026-10-08
 
 ### Fixed
