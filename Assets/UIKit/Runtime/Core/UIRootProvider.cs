@@ -98,8 +98,7 @@ namespace UIKit.Runtime.Core
                     $"{nameof(UIRootProvider)}: {nameof(UIDocument)} did not produce a root VisualElement.");
             }
 
-            root.Add(screenRoot);
-            root.Add(popupsRoot);
+            go.AddComponent<UIDocumentRootKeeper>().Keep(uiDocument, screenRoot, popupsRoot);
         }
 #endif
     }
