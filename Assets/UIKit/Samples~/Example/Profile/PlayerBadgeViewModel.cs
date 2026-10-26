@@ -12,16 +12,16 @@ namespace Example.Profile
     {
         private readonly PlayerProfile profile;
 
+        // Strings rather than ints so the labels bind without a converter.
+        [CreateProperty] public string PlayerName => profile.Name;
+        [CreateProperty] public string LevelText => $"Level {profile.Level}";
+        [CreateProperty] public string ScoreText => $"Score: {profile.Score}";
+
         public PlayerBadgeViewModel(PlayerProfile profile)
         {
             this.profile = profile;
             profile.Changed += OnProfileChanged;
         }
-
-        // Strings rather than ints so the labels bind without a converter.
-        [CreateProperty] public string PlayerName => profile.Name;
-        [CreateProperty] public string LevelText => $"Level {profile.Level}";
-        [CreateProperty] public string ScoreText => $"Score: {profile.Score}";
 
         public void AddScore(int amount) => profile.AddScore(amount);
 

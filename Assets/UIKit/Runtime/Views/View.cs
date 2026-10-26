@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Unity.Properties;
 using UnityEngine;
@@ -12,7 +13,8 @@ namespace UIKit
     /// </summary>
     /// <remarks>
     /// The root's <c>dataSource</c> is the ViewModel, so UXML data bindings resolve against it.
-    /// For changes a binding cannot express, override <see cref="OnPropertyChanged"/>.
+    /// For a reaction a binding cannot express (an effect, an animation), register it with
+    /// <see cref="Observe"/>; <see cref="OnPropertyChanged"/> still sees every change.
     /// </remarks>
     public abstract class View<TViewModel> : IView, IViewBinder where TViewModel : ViewModel
     {
@@ -20,6 +22,7 @@ namespace UIKit
         private ChildViewFactory childViews;
         private bool disposeViewModel = true;
         private Action<IView> disposed;
+        private Dictionary<string, List<Action>> observers;
 
         public VisualElement Root { get; private set; }
         public TViewModel ViewModel { get; private set; }
@@ -74,6 +77,8 @@ namespace UIKit
                     ViewModel.propertyChanged -= propertyChangedHandler;
                 }
 
+                observers = null;
+
                 Root?.RemoveFromHierarchy();
                 Root = null;
 
@@ -104,7 +109,8 @@ namespace UIKit
         }
 
         /// <summary>
-        /// Called when the ViewModel raises a property change.
+        /// Called when the ViewModel raises a property change, after the callbacks registered
+        /// with <see cref="Observe"/> for that property.
         /// </summary>
         protected virtual void OnPropertyChanged(string propertyName)
         {
@@ -131,6 +137,47 @@ namespace UIKit
             return binding;
         }
 
+        /// <summary>
+        /// Runs <paramref name="onChanged"/> each time the ViewModel raises a change of
+        /// <paramref name="propertyName"/>; pass <c>nameof(TViewModel.Property)</c>.
+        /// </summary>
+        /// <remarks>
+        /// It is not run on registration: it is meant for reactions to a change, such as an effect
+        /// or an animation, not for state. Bind state with <see cref="BindProperty"/> or a UXML data
+        /// binding instead, which also applies the current value. Callbacks for the same property
+        /// run in registration order, before <see cref="OnPropertyChanged"/>, and never after
+        /// <see cref="Dispose"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentNullException"><paramref name="propertyName"/> or <paramref name="onChanged"/> is null.</exception>
+        /// <exception cref="ArgumentException"><paramref name="propertyName"/> is empty.</exception>
+        protected void Observe(string propertyName, Action onChanged)
+        {
+            if (propertyName == null) {
+                throw new ArgumentNullException(nameof(propertyName));
+            }
+
+            if (propertyName.Length == 0) {
+                throw new ArgumentException("A property name is required.", nameof(propertyName));
+            }
+
+            if (onChanged == null) {
+                throw new ArgumentNullException(nameof(onChanged));
+            }
+
+            if (IsDisposed) {
+                return;
+            }
+
+            observers ??= new Dictionary<string, List<Action>>();
+
+            if (!observers.TryGetValue(propertyName, out var callbacks)) {
+                callbacks = new List<Action>();
+                observers.Add(propertyName, callbacks);
+            }
+
+            callbacks.Add(onChanged);
+        }
+
         void IViewBinder.Bind(ViewModel viewModel, bool disposeOwnedViewModel, ViewFactory viewFactory)
         {
             if (viewModel is not TViewModel typed) {
@@ -151,10 +198,26 @@ namespace UIKit
             Root = root;
             Root.dataSource = ViewModel;
 
-            propertyChangedHandler = (_, args) => OnPropertyChanged(args.propertyName.ToString());
+            propertyChangedHandler = (_, args) => DispatchPropertyChanged(args.propertyName.ToString());
             ViewModel.propertyChanged += propertyChangedHandler;
 
             OnAttach();
+        }
+
+        // A callback may dispose the view; nothing runs after that.
+        private void DispatchPropertyChanged(string propertyName)
+        {
+            if (observers != null && observers.TryGetValue(propertyName, out var callbacks)) {
+                var count = callbacks.Count;
+
+                for (var i = 0; i < count && !IsDisposed; i++) {
+                    callbacks[i]();
+                }
+            }
+
+            if (!IsDisposed) {
+                OnPropertyChanged(propertyName);
+            }
         }
     }
 }

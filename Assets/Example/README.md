@@ -27,7 +27,8 @@ you install it.
 - **Data binding** - `Profile/PlayerBadge.uxml` binds its labels to `[CreateProperty]` members of
   `PlayerBadgeViewModel`; the view has no label code at all. `ProfileView` and `SettingsView` do
   the same in code with `BindProperty`, including two-way bindings for the slider and toggle.
-- **Manual updates** - `MainMenuView` updates its labels from `OnPropertyChanged` instead.
+- **Reacting to a change** - `MainMenuView` binds its labels in code too, and uses `Observe` to
+  flash the status label each time `Status` changes: an effect, which a binding cannot express.
 - **Results and payloads** - `MainMenuViewModel` awaits `RunAsync` for both popups; the rename
   popup receives the current name through `IPayloadReceiver<string>`.
 - **Child views** - `ProfileView` creates the badge through its `ViewFactory`, so it is disposed

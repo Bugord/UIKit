@@ -61,7 +61,11 @@ namespace UIKit.Dev.PlayModeTests
             // Main menu.
             yield return Until(() => screenLayer.Q("main-menu") != null);
             AssertShown(screenLayer, "main-menu");
-            Assert.That(screenLayer.Q<Label>("greeting-label").text, Does.Contain("Player"));
+
+            // The greeting comes from a data binding, which applies on the next panel update.
+            var greeting = screenLayer.Q<Label>("greeting-label");
+            yield return Until(() => greeting.text.Contains("Player"));
+            Assert.That(greeting.text, Does.Contain("Player"));
 
             // Styles: the theme (.tss) gives buttons a background, Example.uss their height.
             var profileButton = screenLayer.Q<Button>("profile-button");

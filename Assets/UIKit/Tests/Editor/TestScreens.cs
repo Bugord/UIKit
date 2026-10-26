@@ -187,11 +187,14 @@ namespace UIKit.Tests
         public int DisposeCount { get; private set; }
         public List<string> ChangedProperties { get; } = new();
         public Action<TestView<TViewModel>> Attached;
+        public Action<string> PropertyChangedAction;
 
         // Root is null once disposed; display is what Show/HideAsync set.
         public bool IsShown => Root != null && Root.style.display.value != DisplayStyle.None;
 
         public IViewFactory Children => ViewFactory;
+
+        public void ObserveProperty(string propertyName, Action onChanged) => Observe(propertyName, onChanged);
 
         // The next ShowAsync stays pending until the returned source completes. With
         // touchRootAfterwards it then sets the root's style, as an animation's last frame would.
@@ -265,7 +268,11 @@ namespace UIKit.Tests
             Attached?.Invoke(this);
         }
 
-        protected override void OnPropertyChanged(string propertyName) => ChangedProperties.Add(propertyName);
+        protected override void OnPropertyChanged(string propertyName)
+        {
+            ChangedProperties.Add(propertyName);
+            PropertyChangedAction?.Invoke(propertyName);
+        }
 
         protected override void OnDispose()
         {

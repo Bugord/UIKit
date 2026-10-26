@@ -12,14 +12,6 @@ namespace Example.Settings
         private float volume;
         private bool muted;
 
-        public SettingsViewModel(IScreenNavigator navigator, GameSettings settings)
-        {
-            this.navigator = navigator;
-            this.settings = settings;
-            volume = settings.Volume;
-            muted = settings.Muted;
-        }
-
         // Bound two-way by SettingsView: the slider writes through this setter, and
         // SetProperty's change notification updates the bound VolumeText label.
         [CreateProperty]
@@ -47,6 +39,14 @@ namespace Example.Settings
         }
 
         [CreateProperty] public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+
+        public SettingsViewModel(IScreenNavigator navigator, GameSettings settings)
+        {
+            this.navigator = navigator;
+            this.settings = settings;
+            volume = settings.Volume;
+            muted = settings.Muted;
+        }
 
         public Awaitable CloseAsync() => navigator.CloseAsync(this);
     }

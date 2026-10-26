@@ -26,7 +26,8 @@ This release has many breaking changes. See **Migrating from 0.5.x** at the end 
 - **Unity runtime data binding.** `ViewModel` implements `INotifyBindablePropertyChanged`
   (with `SetProperty` and `Notify` helpers) and a view sets its root's `dataSource` to its
   ViewModel, so `[CreateProperty]` properties work with UXML bindings. `View` also gained
-  `OnPropertyChanged` and `BindProperty` for bindings made in code.
+  `OnPropertyChanged` and `BindProperty` for bindings made in code, and `Observe` for
+  one-off reactions to a single property's change.
 - **`[UIScreen]` takes the layer and the dismiss triggers:**
   `[UIScreen("Id", Dismiss = DismissTriggers.None)]`, `[UIScreen(UILayer.Popup)]`.
   `DismissTriggers` (`None`, `BackdropClick`, `NavigationCancel`, `All`) replaces

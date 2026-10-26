@@ -4,6 +4,7 @@ using Example.Profile;
 using Example.Rename;
 using Example.Settings;
 using UIKit;
+using Unity.Properties;
 using UnityEngine;
 
 namespace Example
@@ -16,19 +17,21 @@ namespace Example
         private string status = string.Empty;
         private bool navigating;
 
+        [CreateProperty]
+        public string Greeting => $"Hello, {profile.Name}";
+
+        [CreateProperty]
+        public string Status
+        {
+            get => status;
+            private set => SetProperty(ref status, value);
+        }
+
         public MainMenuViewModel(IScreenNavigator navigator, PlayerProfile profile)
         {
             this.navigator = navigator;
             this.profile = profile;
             profile.Changed += OnProfileChanged;
-        }
-
-        public string Greeting => $"Hello, {profile.Name}";
-
-        public string Status
-        {
-            get => status;
-            private set => SetProperty(ref status, value);
         }
 
         // Each call passes LifetimeToken: if the menu is disposed while a popup is open, the

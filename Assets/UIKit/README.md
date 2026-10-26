@@ -230,8 +230,16 @@ or in code, with `BindProperty` inside `OnAttach`:
 BindProperty(Root.Q<Label>("clicks-label"), "text", nameof(MainMenuViewModel.Clicks));
 ```
 
-For changes a binding cannot express (animations, focus), override
-`OnPropertyChanged(string propertyName)` in the view.
+For a reaction a binding cannot express (an animation, an effect, focus), use `Observe` in
+`OnAttach`. It runs on each change of that property, but not on registration, so keep state in
+bindings:
+
+```csharp
+Observe(nameof(MainMenuViewModel.Clicks), PlayClickEffect);
+```
+
+`OnPropertyChanged(string propertyName)` is still there for a view that wants every change; it
+runs after the `Observe` callbacks.
 
 Lifecycle:
 
