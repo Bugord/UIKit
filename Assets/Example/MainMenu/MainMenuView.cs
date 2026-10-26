@@ -18,18 +18,18 @@ namespace Example
 
         protected override void OnAttach()
         {
-            statusLabel = Root.Q<Label>("status-label");
+            statusLabel = Require<Label>("status-label");
 
-            BindProperty(Root.Q<Label>("greeting-label"), "text", nameof(MainMenuViewModel.Greeting));
-            BindProperty(statusLabel, "text", nameof(MainMenuViewModel.Status));
+            BindText("greeting-label", nameof(MainMenuViewModel.Greeting));
+            BindText(statusLabel, nameof(MainMenuViewModel.Status));
 
             Observe(nameof(MainMenuViewModel.Status), FlashStatus);
 
-            // Navigation started from a click is fire-and-forget: Forget() logs any failure.
-            Root.Q<Button>("play-button").clicked += () => ViewModel.StartGameAsync().Forget();
-            Root.Q<Button>("settings-button").clicked += () => ViewModel.OpenSettingsAsync().Forget();
-            Root.Q<Button>("rename-button").clicked += () => ViewModel.RenamePlayerAsync().Forget();
-            Root.Q<Button>("profile-button").clicked += () => ViewModel.OpenProfileAsync().Forget();
+            // Each button is disabled while its command, or another on the same gate, runs.
+            BindCommand("play-button", ViewModel.StartGame);
+            BindCommand("settings-button", ViewModel.OpenSettings);
+            BindCommand("rename-button", ViewModel.RenamePlayer);
+            BindCommand("profile-button", ViewModel.OpenProfile);
         }
 
         // A change during a flash restarts its timer rather than queueing a second one.

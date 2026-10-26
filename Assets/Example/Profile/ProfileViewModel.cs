@@ -1,6 +1,5 @@
 using UIKit;
 using Unity.Properties;
-using UnityEngine;
 
 namespace Example.Profile
 {
@@ -18,14 +17,15 @@ namespace Example.Profile
         // The name cannot change while this screen is open, so it never needs a Notify.
         [CreateProperty] public string Title => $"Welcome, {profile.Name}!";
 
+        public AsyncCommand Close { get; }
+
         public ProfileViewModel(IScreenNavigator navigator, PlayerProfile profile)
         {
             this.navigator = navigator;
             this.profile = profile;
             Badge = new PlayerBadgeViewModel(profile);
+            Close = new AsyncCommand(() => navigator.CloseAsync(this));
         }
-
-        public Awaitable CloseAsync() => navigator.CloseAsync(this);
 
         protected override void OnDispose()
         {

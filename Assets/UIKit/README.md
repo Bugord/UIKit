@@ -224,11 +224,89 @@ element's `dataSource` to it. Mark properties with `[CreateProperty]` and raise 
 </ui:Label>
 ```
 
-or in code, with `BindProperty` inside `OnAttach`:
+or in code, inside `OnAttach`:
 
 ```csharp
-BindProperty(Root.Q<Label>("clicks-label"), "text", nameof(MainMenuViewModel.Clicks));
+BindText("clicks-label", nameof(MainMenuViewModel.Clicks));          // a TextElement's text, one way
+BindValue("volume-slider", nameof(SettingsViewModel.Volume));        // a field's value, two-way by default
+BindProperty(Require<ProgressBar>("progress"), "title", nameof(LoadingViewModel.ProgressText));
+var slider = Require<Slider>("volume-slider");                       // throws if it is missing
 ```
+
+`BindText` and `BindValue` take an element name or the element itself; `BindProperty` binds any
+property. `Require<T>(name)` is `Root.Q<T>(name)` that throws `InvalidOperationException` naming
+the view, the element type and the name, instead of returning `null`.
+
+In the editor and in development builds every bind call checks the ViewModel property through
+Unity.Properties, against the ViewModel's runtime type, and throws `ArgumentException` when it
+does not exist (a typo, or a property without `[CreateProperty]`) or when a `TwoWay` / `ToSource`
+binding targets a read-only property. Release builds skip the check.
+
+### Computed properties
+
+A property computed from others declares them with `[DependsOn]`; notifying a source, through
+`SetProperty` or `Notify`, notifies its dependents too:
+
+```csharp
+[CreateProperty]
+public float Volume { get => volume; set => SetProperty(ref volume, value); }
+
+[CreateProperty, DependsOn(nameof(Volume), nameof(Muted))]
+public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+```
+
+Dependencies chain (a dependent of a dependent is notified too). The source is raised first, then
+its dependents breadth-first, each once per call even when several paths reach it. The map is built
+once per ViewModel type, including inherited and non-public properties; an unknown name or a cycle
+throws `InvalidOperationException` when the ViewModel is constructed. For values computed from
+state the ViewModel does not own, notify them together when that state changes:
+`Notify(nameof(PlayerName), nameof(LevelText), nameof(ScoreText))`.
+
+### Commands
+
+Expose actions as commands and bind them to buttons:
+
+```csharp
+public class MainMenuViewModel : ViewModel
+{
+    public AsyncCommand Play { get; }
+    public AsyncCommand OpenSettings { get; }
+    public Command Reset { get; }
+
+    public MainMenuViewModel(IScreenNavigator navigator)
+    {
+        var navigation = new CommandGate();
+        Play = new AsyncCommand(PlayAsync, navigation);
+        OpenSettings = new AsyncCommand(OpenSettingsAsync, navigation);
+        Reset = new Command(ResetProgress, () => HasProgress);
+    }
+    // ...
+}
+
+// in the view's OnAttach
+BindCommand("play-button", ViewModel.Play);
+BindCommand("settings-button", ViewModel.OpenSettings);
+BindCommand("reset-button", ViewModel.Reset);
+```
+
+- `Command` runs an `Action`. Its optional predicate is read on demand; call
+  `RaiseCanExecuteChanged()` when the predicate's inputs change.
+- `AsyncCommand` runs a `Func<Awaitable>` and cannot execute again until it finishes, so a
+  double click does not start it twice. `IsRunning` is reset however it ends, and
+  `CanExecuteChanged` is raised when it starts and when it finishes. `Execute()` runs it without
+  waiting (a failure is logged like `Forget()`); `ExecuteAsync()` returns an awaitable for code
+  and tests. A call while it cannot execute is ignored and returns a completed awaitable.
+- `AsyncCommand`s created with the same `CommandGate` are mutually exclusive: while one runs,
+  none of them can execute, so two buttons clicked in the same frame cannot both navigate.
+
+`BindCommand(button or name, command)` runs the command on click and keeps the button enabled
+only while `CanExecute` is true (through `SetEnabled`). The view unsubscribes from the command
+and the button when it is disposed, so a command on a ViewModel that outlives the view (a child
+view's, for one) does not keep the view alive. `IsRunning` is a plain property of the command, not
+of the ViewModel, so a UXML binding to it would never refresh; expose a ViewModel property if the
+UI must show it.
+
+### Reacting to a change
 
 For a reaction a binding cannot express (an animation, an effect, focus), use `Observe` in
 `OnAttach`. It runs on each change of that property, but not on registration, so keep state in
@@ -236,7 +314,15 @@ bindings:
 
 ```csharp
 Observe(nameof(MainMenuViewModel.Clicks), PlayClickEffect);
+Observe<int>(nameof(MainMenuViewModel.Clicks), clicks => Debug.Log($"{clicks} clicks"));
 ```
+
+`Observe<T>` passes the new value, read through Unity.Properties as a binding reads it. `T` must
+be the property's type or one it is assignable to; in the editor and development builds a
+mismatch throws when `Observe<T>` is called. A release build does not check, and if the value
+cannot be read it skips the callback and logs an error once. Both forms need a `[CreateProperty]`
+property, checked like a binding. Callbacks for a property run in registration order and never
+after the view is disposed.
 
 `OnPropertyChanged(string propertyName)` is still there for a view that wants every change; it
 runs after the `Observe` callbacks.

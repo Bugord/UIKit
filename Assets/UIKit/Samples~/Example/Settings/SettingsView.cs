@@ -1,5 +1,4 @@
 using UIKit;
-using UnityEngine.UIElements;
 
 namespace Example.Settings
 {
@@ -7,11 +6,12 @@ namespace Example.Settings
     {
         protected override void OnAttach()
         {
-            BindProperty(Root.Q<Slider>("volume-slider"), "value", nameof(SettingsViewModel.Volume), BindingMode.TwoWay);
-            BindProperty(Root.Q<Toggle>("muted-toggle"), "value", nameof(SettingsViewModel.Muted), BindingMode.TwoWay);
-            BindProperty(Root.Q<Label>("volume-label"), "text", nameof(SettingsViewModel.VolumeText));
+            // Two-way by default: the slider and the toggle write back through the setters.
+            BindValue("volume-slider", nameof(SettingsViewModel.Volume));
+            BindValue("muted-toggle", nameof(SettingsViewModel.Muted));
+            BindText("volume-label", nameof(SettingsViewModel.VolumeText));
 
-            Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
+            BindCommand("back-button", ViewModel.Close);
         }
     }
 }

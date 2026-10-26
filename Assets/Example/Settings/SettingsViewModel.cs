@@ -13,7 +13,7 @@ namespace Example.Settings
         private bool muted;
 
         // Bound two-way by SettingsView: the slider writes through this setter, and
-        // SetProperty's change notification updates the bound VolumeText label.
+        // SetProperty's change notification also notifies VolumeText, which depends on it.
         [CreateProperty]
         public float Volume
         {
@@ -21,7 +21,6 @@ namespace Example.Settings
             set {
                 if (SetProperty(ref volume, value)) {
                     settings.Volume = value;
-                    Notify(nameof(VolumeText));
                 }
             }
         }
@@ -33,12 +32,14 @@ namespace Example.Settings
             set {
                 if (SetProperty(ref muted, value)) {
                     settings.Muted = value;
-                    Notify(nameof(VolumeText));
                 }
             }
         }
 
-        [CreateProperty] public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+        [CreateProperty, DependsOn(nameof(Volume), nameof(Muted))]
+        public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+
+        public AsyncCommand Close { get; }
 
         public SettingsViewModel(IScreenNavigator navigator, GameSettings settings)
         {
@@ -46,8 +47,7 @@ namespace Example.Settings
             this.settings = settings;
             volume = settings.Volume;
             muted = settings.Muted;
+            Close = new AsyncCommand(() => navigator.CloseAsync(this));
         }
-
-        public Awaitable CloseAsync() => navigator.CloseAsync(this);
     }
 }

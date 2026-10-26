@@ -1,5 +1,4 @@
 using UIKit;
-using UnityEngine.UIElements;
 
 namespace Example.Profile
 {
@@ -7,8 +6,9 @@ namespace Example.Profile
     {
         protected override void OnAttach()
         {
-            // The labels are bound in PlayerBadge.uxml; only the button needs code.
-            Root.Q<Button>("add-score-button").clicked += () => ViewModel.AddScore(10);
+            // The labels are bound in PlayerBadge.uxml; only the button needs code. The badge
+            // ViewModel outlives this view, so the binding ends when the view is disposed.
+            BindCommand("add-score-button", ViewModel.AddScore);
         }
     }
 }

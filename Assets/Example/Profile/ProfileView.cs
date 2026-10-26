@@ -8,15 +8,15 @@ namespace Example.Profile
         protected override void OnAttach()
         {
             // The code equivalent of a UXML binding; PlayerBadge.uxml shows the UXML form.
-            BindProperty(Root.Q<Label>("name-label"), "text", nameof(ProfileViewModel.Title));
+            BindText("name-label", nameof(ProfileViewModel.Title));
 
-            Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
+            BindCommand("back-button", ViewModel.Close);
 
             // Created through this view's ViewFactory, so it is disposed together with this
             // view. The badge's root gets the badge ViewModel as its own dataSource, which is
             // what its UXML bindings resolve against.
             ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(
-                ViewModel.Badge, Root.Q<VisualElement>("badge-container"), disposeViewModel: false);
+                ViewModel.Badge, Require<VisualElement>("badge-container"), disposeViewModel: false);
         }
     }
 }

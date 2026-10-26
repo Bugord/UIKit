@@ -5,8 +5,8 @@ namespace Example.Profile
 {
     /// <summary>
     /// Shows the player's profile. Its view has no update code at all: PlayerBadge.uxml binds
-    /// the labels to the <c>[CreateProperty]</c> members below, and <see cref="ViewModel.Notify"/>
-    /// tells the bindings when to refresh.
+    /// the labels to the <c>[CreateProperty]</c> members below, and <c>Notify</c> tells the
+    /// bindings when to refresh.
     /// </summary>
     public class PlayerBadgeViewModel : ViewModel
     {
@@ -17,13 +17,14 @@ namespace Example.Profile
         [CreateProperty] public string LevelText => $"Level {profile.Level}";
         [CreateProperty] public string ScoreText => $"Score: {profile.Score}";
 
+        public Command AddScore { get; }
+
         public PlayerBadgeViewModel(PlayerProfile profile)
         {
             this.profile = profile;
             profile.Changed += OnProfileChanged;
+            AddScore = new Command(() => profile.AddScore(10));
         }
-
-        public void AddScore(int amount) => profile.AddScore(amount);
 
         protected override void OnDispose()
         {
@@ -31,12 +32,9 @@ namespace Example.Profile
             profile.Changed -= OnProfileChanged;
         }
 
-        private void OnProfileChanged()
-        {
-            // Computed properties have no setter to raise the change, so notify each one.
-            Notify(nameof(PlayerName));
-            Notify(nameof(LevelText));
-            Notify(nameof(ScoreText));
-        }
+        // The state lives in PlayerProfile, outside this ViewModel, so there is no source
+        // property for [DependsOn] to follow: notify every property computed from it at once.
+        private void OnProfileChanged() =>
+            Notify(nameof(PlayerName), nameof(LevelText), nameof(ScoreText));
     }
 }

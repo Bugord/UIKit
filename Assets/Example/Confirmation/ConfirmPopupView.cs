@@ -7,8 +7,10 @@ namespace Example.Confirmation
     {
         protected override void OnAttach()
         {
-            Root.Q<Button>("yes-button").clicked += ViewModel.Confirm;
-            Root.Q<Button>("no-button").clicked += ViewModel.Cancel;
+            // Plain handlers rather than commands: the popup resolves once, and the ViewModel and
+            // its buttons go away together, so there is no state to follow and nothing to unbind.
+            Require<Button>("yes-button").clicked += ViewModel.Confirm;
+            Require<Button>("no-button").clicked += ViewModel.Cancel;
         }
     }
 }

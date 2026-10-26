@@ -1,4 +1,3 @@
-using System;
 using Example.Confirmation;
 using Example.Profile;
 using Example.Rename;
@@ -15,7 +14,6 @@ namespace Example
         private readonly PlayerProfile profile;
 
         private string status = string.Empty;
-        private bool navigating;
 
         [CreateProperty]
         public string Greeting => $"Hello, {profile.Name}";
@@ -27,22 +25,43 @@ namespace Example
             private set => SetProperty(ref status, value);
         }
 
+        // One gate for all four: while one of them navigates, none of the others can start, so
+        // two buttons clicked in the same frame cannot open two screens. The view disables the
+        // buttons meanwhile.
+        public AsyncCommand StartGame { get; }
+        public AsyncCommand RenamePlayer { get; }
+        public AsyncCommand OpenSettings { get; }
+        public AsyncCommand OpenProfile { get; }
+
         public MainMenuViewModel(IScreenNavigator navigator, PlayerProfile profile)
         {
             this.navigator = navigator;
             this.profile = profile;
             profile.Changed += OnProfileChanged;
+
+            var navigation = new CommandGate();
+            StartGame = new AsyncCommand(StartGameAsync, navigation);
+            RenamePlayer = new AsyncCommand(RenamePlayerAsync, navigation);
+            OpenSettings = new AsyncCommand(OpenSettingsAsync, navigation);
+            OpenProfile = new AsyncCommand(OpenProfileAsync, navigation);
+        }
+
+        protected override void OnDispose()
+        {
+            profile.Changed -= OnProfileChanged;
         }
 
         // Each call passes LifetimeToken: if the menu is disposed while a popup is open, the
         // wait is cancelled instead of resuming into a dead ViewModel.
 
-        public Awaitable StartGameAsync() => NavigateAsync(async () => {
+        private async Awaitable StartGameAsync()
+        {
             var confirmed = await navigator.RunAsync<ConfirmPopupViewModel, bool>(LifetimeToken);
             Status = confirmed ? "Game started!" : "Start cancelled.";
-        });
+        }
 
-        public Awaitable RenamePlayerAsync() => NavigateAsync(async () => {
+        private async Awaitable RenamePlayerAsync()
+        {
             var name = await navigator.RunAsync<NameInputPopupViewModel, string, string>(profile.Name, LifetimeToken);
 
             if (name == null) {
@@ -53,36 +72,16 @@ namespace Example
                 profile.Name = name;
                 Status = $"Player renamed to '{name}'.";
             }
-        });
-
-        public Awaitable OpenSettingsAsync() => NavigateAsync(async () => {
-            await navigator.OpenAsync<SettingsViewModel>(LifetimeToken);
-        });
-
-        public Awaitable OpenProfileAsync() => NavigateAsync(async () => {
-            await navigator.OpenAsync<ProfileViewModel>(LifetimeToken);
-        });
-
-        protected override void OnDispose()
-        {
-            profile.Changed -= OnProfileChanged;
         }
 
-        // Ignores a click while the previous one is still being handled, so a double click
-        // cannot queue the same screen or popup twice.
-        private async Awaitable NavigateAsync(Func<Awaitable> navigate)
+        private async Awaitable OpenSettingsAsync()
         {
-            if (navigating) {
-                return;
-            }
+            await navigator.OpenAsync<SettingsViewModel>(LifetimeToken);
+        }
 
-            navigating = true;
-
-            try {
-                await navigate();
-            } finally {
-                navigating = false;
-            }
+        private async Awaitable OpenProfileAsync()
+        {
+            await navigator.OpenAsync<ProfileViewModel>(LifetimeToken);
         }
 
         private void OnProfileChanged() => Notify(nameof(Greeting));

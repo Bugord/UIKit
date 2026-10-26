@@ -26,7 +26,16 @@ you install it.
 
 - **Data binding** - `Profile/PlayerBadge.uxml` binds its labels to `[CreateProperty]` members of
   `PlayerBadgeViewModel`; the view has no label code at all. `ProfileView` and `SettingsView` do
-  the same in code with `BindProperty`, including two-way bindings for the slider and toggle.
+  the same in code with `BindText` and `BindValue` (two-way for the slider and toggle). In the
+  editor a misspelt property name throws when the view attaches, instead of binding nothing.
+- **Computed properties** - `SettingsViewModel.VolumeText` is marked
+  `[DependsOn(nameof(Volume), nameof(Muted))]`, so it refreshes whenever either changes.
+  `PlayerBadgeViewModel` computes its labels from `PlayerProfile`, which it does not own, so it
+  notifies all three in one `Notify(...)` call when the profile changes.
+- **Commands** - buttons are bound with `BindCommand`. The four main menu buttons run
+  `AsyncCommand`s that share one `CommandGate`: while one navigates, all four are disabled, so
+  two clicks in the same frame cannot open two screens. Back and +10 use commands too. The
+  popups keep plain `clicked` handlers: they resolve once, so there is no state to follow.
 - **Reacting to a change** - `MainMenuView` binds its labels in code too, and uses `Observe` to
   flash the status label each time `Status` changes: an effect, which a binding cannot express.
 - **Results and payloads** - `MainMenuViewModel` awaits `RunAsync` for both popups; the rename

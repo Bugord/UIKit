@@ -10,7 +10,7 @@ namespace UIKit.Dev.PlayModeTests
 {
     /// <summary>
     /// Smoke tests for the example scenes: each one must start without an error, open the main
-    /// menu, and run the Profile flow through its real UI, data bindings included. The UI is
+    /// menu, and run the Profile and Settings flows through their real UI, data bindings included. The UI is
     /// found through the panel alone, so the DI scenes need no container references here.
     /// </summary>
     public class ExampleSceneTests
@@ -115,6 +115,40 @@ namespace UIKit.Dev.PlayModeTests
             Click(profile.Q<Button>("back-button"));
             yield return Until(() => ScreenOf(screenLayer, "profile") == null && IsShown(screenLayer, "main-menu"));
             Assert.That(ScreenOf(screenLayer, "profile"), Is.Null, "Profile was not removed after Back.");
+            AssertShown(screenLayer, "main-menu");
+
+            // Settings: the controls are bound two-way in code, and the label refreshes through
+            // [DependsOn] whenever the slider or the toggle writes back to the ViewModel.
+            Click(screenLayer.Q<Button>("settings-button"));
+            yield return Until(() => IsShown(screenLayer, "settings"));
+            AssertShown(screenLayer, "settings");
+
+            var settings = ScreenOf(screenLayer, "settings");
+            var slider = settings.Q<Slider>("volume-slider");
+            var muted = settings.Q<Toggle>("muted-toggle");
+            var volumeLabel = settings.Q<Label>("volume-label");
+
+            yield return Until(() => Mathf.Approximately(slider.value, 0.5f));
+            Assert.That(slider.value, Is.EqualTo(0.5f).Within(0.001f), "The slider did not get the ViewModel's volume.");
+            Assert.That(volumeLabel.text, Is.EqualTo("50%"));
+
+            slider.value = 0.25f;
+            yield return Until(() => volumeLabel.text == "25%");
+            Assert.That(volumeLabel.text, Is.EqualTo("25%"), "The slider did not write back, or VolumeText did not refresh.");
+
+            muted.value = true;
+            yield return Until(() => volumeLabel.text == "Muted");
+            Assert.That(volumeLabel.text, Is.EqualTo("Muted"), "The toggle did not write back, or VolumeText did not refresh.");
+
+            // Restore the defaults, so the run leaves the settings as it found them.
+            muted.value = false;
+            slider.value = 0.5f;
+            yield return Until(() => volumeLabel.text == "50%");
+            Assert.That(volumeLabel.text, Is.EqualTo("50%"));
+
+            Click(settings.Q<Button>("back-button"));
+            yield return Until(() => ScreenOf(screenLayer, "settings") == null && IsShown(screenLayer, "main-menu"));
+            Assert.That(ScreenOf(screenLayer, "settings"), Is.Null, "Settings was not removed after Back.");
             AssertShown(screenLayer, "main-menu");
 
             LogAssert.NoUnexpectedReceived();

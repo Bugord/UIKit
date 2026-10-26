@@ -12,13 +12,13 @@ namespace Example.Rename
         {
             // Set once and read back on OK, no binding: the field is the only place the draft
             // name lives until it is confirmed.
-            nameField = Root.Q<TextField>("name-field");
+            nameField = Require<TextField>("name-field");
             nameField.value = ViewModel.CurrentName;
             // TrickleDown so Enter is seen before the text input handles it.
             nameField.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
 
-            Root.Q<Button>("ok-button").clicked += Confirm;
-            Root.Q<Button>("cancel-button").clicked += ViewModel.Cancel;
+            Require<Button>("ok-button").clicked += Confirm;
+            Require<Button>("cancel-button").clicked += ViewModel.Cancel;
         }
 
         private void OnKeyDown(KeyDownEvent evt)

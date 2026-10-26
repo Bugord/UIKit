@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using NUnit.Framework;
+using Unity.Properties;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -107,6 +108,7 @@ namespace UIKit.Tests
     {
         private int score;
 
+        [CreateProperty]
         public int Score
         {
             get => score;
@@ -118,6 +120,51 @@ namespace UIKit.Tests
         public void NotifyProperty(string propertyName) => Notify(propertyName);
 
         public void NotifyFromCaller() => Notify();
+
+        public void NotifyMany(string first, string second, params string[] rest) => Notify(first, second, rest);
+    }
+
+    // Properties of each kind the binding and observe validation tells apart.
+    internal class BindingViewModel : LoggedViewModel
+    {
+        private string name = string.Empty;
+        private float volume;
+
+        [CreateProperty]
+        public string Name
+        {
+            get => name;
+            set => SetProperty(ref name, value);
+        }
+
+        [CreateProperty]
+        public float Volume
+        {
+            get => volume;
+            set => SetProperty(ref volume, value);
+        }
+
+        // Computed, so it has no setter: a binding that writes to it must be rejected.
+        [CreateProperty]
+        public string Greeting => $"Hello, {name}";
+
+        // Not a [CreateProperty], so Unity.Properties and therefore bindings cannot see it.
+        public string Hidden => name;
+
+        public void NotifyProperty(string propertyName) => Notify(propertyName);
+    }
+
+    // Bound through a view of its base type, so validation must resolve against the runtime type.
+    internal sealed class DerivedBindingViewModel : BindingViewModel
+    {
+        private int extra;
+
+        [CreateProperty]
+        public int Extra
+        {
+            get => extra;
+            set => SetProperty(ref extra, value);
+        }
     }
 
     // Only ever created as a child view, so it is registered with RegisterView.
@@ -195,6 +242,32 @@ namespace UIKit.Tests
         public IViewFactory Children => ViewFactory;
 
         public void ObserveProperty(string propertyName, Action onChanged) => Observe(propertyName, onChanged);
+
+        public void ObserveValue<T>(string propertyName, Action<T> onChanged) => Observe(propertyName, onChanged);
+
+        public T RequireElement<T>(string name) where T : VisualElement => Require<T>(name);
+
+        public DataBinding BindElementProperty(VisualElement element, string elementProperty, string viewModelProperty,
+            BindingMode mode = BindingMode.ToTarget) =>
+            BindProperty(element, elementProperty, viewModelProperty, mode);
+
+        public DataBinding BindTextOf(string elementName, string viewModelProperty) =>
+            BindText(elementName, viewModelProperty);
+
+        public DataBinding BindTextOf(TextElement element, string viewModelProperty) =>
+            BindText(element, viewModelProperty);
+
+        public DataBinding BindValueOf(string elementName, string viewModelProperty,
+            BindingMode mode = BindingMode.TwoWay) =>
+            BindValue(elementName, viewModelProperty, mode);
+
+        public DataBinding BindValueOf<TValue>(BaseField<TValue> field, string viewModelProperty,
+            BindingMode mode = BindingMode.TwoWay) =>
+            BindValue(field, viewModelProperty, mode);
+
+        public void BindCommandTo(Button button, ICommand command) => BindCommand(button, command);
+
+        public void BindCommandTo(string buttonName, ICommand command) => BindCommand(buttonName, command);
 
         // The next ShowAsync stays pending until the returned source completes. With
         // touchRootAfterwards it then sets the root's style, as an animation's last frame would.

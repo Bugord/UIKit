@@ -28,6 +28,26 @@ This release has many breaking changes. See **Migrating from 0.5.x** at the end 
   ViewModel, so `[CreateProperty]` properties work with UXML bindings. `View` also gained
   `OnPropertyChanged` and `BindProperty` for bindings made in code, and `Observe` for
   one-off reactions to a single property's change.
+- **Typed bindings in code:** `BindText` (a `TextElement`'s text, one way) and `BindValue` (a
+  field's value, two-way by default), each by element name or element, and `Require<T>(name)`,
+  which throws `InvalidOperationException` naming the view, the type and the name instead of
+  returning `null`.
+- **Binding validation in the editor and development builds:** `BindProperty`, `BindText`,
+  `BindValue`, `Observe` and `Observe<T>` resolve the ViewModel property through
+  Unity.Properties (against the ViewModel's runtime type) when called, and throw
+  `ArgumentException` for an unknown property, one without `[CreateProperty]`, or a read-only
+  property bound `TwoWay` / `ToSource`. Release builds skip the check.
+- **`Observe<T>(propertyName, Action<T>)`** passes the new value; a property of another type
+  throws when registered (editor and development builds).
+- **Commands:** `ICommand`, `Command` (sync, optional predicate, `RaiseCanExecuteChanged`) and
+  `AsyncCommand` (runs an `Awaitable`, cannot run twice at once, `IsRunning`, `ExecuteAsync`).
+  `AsyncCommand`s sharing a `CommandGate` are mutually exclusive. `View.BindCommand(button or
+  name, command)` runs it on click and enables the button only while it can execute; the view
+  unsubscribes when disposed.
+- **`[DependsOn(...)]`** on a computed property notifies it whenever one of its sources is
+  notified, transitively, each property once per call. An unknown name or a cycle throws when
+  the ViewModel is constructed. `Notify(first, second, params rest)` raises several properties
+  (and their dependents) at once.
 - **`[UIScreen]` takes the layer and the dismiss triggers:**
   `[UIScreen("Id", Dismiss = DismissTriggers.None)]`, `[UIScreen(UILayer.Popup)]`.
   `DismissTriggers` (`None`, `BackdropClick`, `NavigationCancel`, `All`) replaces
