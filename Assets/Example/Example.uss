@@ -28,6 +28,12 @@
     margin-bottom: 16px;
 }
 
+.subtitle {
+    color: rgb(200, 200, 200);
+    -unity-text-align: middle-center;
+    margin-bottom: 16px;
+}
+
 .menu-button {
     margin-bottom: 8px;
     height: 36px;
@@ -35,6 +41,7 @@
 
 .status-label {
     margin-top: 12px;
+    min-height: 20px;
     color: rgb(200, 200, 200);
     -unity-text-align: middle-center;
     white-space: normal;
@@ -87,6 +94,14 @@ Button:focus {
 
 .badge Label {
     color: rgb(220, 220, 220);
+}
+
+.badge-info {
+    flex-direction: column;
+}
+
+.badge-name {
+    -unity-font-style: bold;
 }
 
 .badge-button {

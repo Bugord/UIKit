@@ -1,23 +1,35 @@
-using Cysharp.Threading.Tasks;
-using UIKit.Runtime.Abstractions;
+using UIKit;
+using Unity.Properties;
+using UnityEngine;
 
 namespace Example.Profile
 {
-    public class ProfileViewModel : ViewModel, IPayloadReceiver<string>
+    public class ProfileViewModel : ViewModel
     {
         private readonly IScreenNavigator navigator;
+        private readonly PlayerProfile profile;
 
-        public string PlayerName { get; private set; } = string.Empty;
-        public PlayerBadgeViewModel Badge { get; }
-
-        public ProfileViewModel(IScreenNavigator navigator, PlayerBadgeViewModel badge)
+        public ProfileViewModel(IScreenNavigator navigator, PlayerProfile profile)
         {
             this.navigator = navigator;
-            Badge = badge;
+            this.profile = profile;
+            Badge = new PlayerBadgeViewModel(profile);
         }
 
-        public void SetPayload(string payload) => PlayerName = payload;
+        /// <summary>
+        /// Owned by this ViewModel, so the view creates the badge view without letting it
+        /// dispose the badge.
+        /// </summary>
+        public PlayerBadgeViewModel Badge { get; }
 
-        public UniTask CloseAsync() => navigator.CloseAsync(this);
+        // The name cannot change while this screen is open, so it never needs a Notify.
+        [CreateProperty] public string Title => $"Welcome, {profile.Name}!";
+
+        public Awaitable CloseAsync() => navigator.CloseAsync(this);
+
+        protected override void OnDispose()
+        {
+            Badge.Dispose();
+        }
     }
 }

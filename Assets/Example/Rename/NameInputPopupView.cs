@@ -1,17 +1,33 @@
-using UIKit.Runtime.Core;
+using UIKit;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace Example.Rename
 {
     public class NameInputPopupView : View<NameInputPopupViewModel>
     {
+        private TextField nameField;
+
         protected override void OnAttach()
         {
-            var nameField = Root.Q<TextField>("name-field");
-            nameField.value = ViewModel.InitialName;
+            // Set once and read back on OK, no binding: the field is the only place the draft
+            // name lives until it is confirmed.
+            nameField = Root.Q<TextField>("name-field");
+            nameField.value = ViewModel.CurrentName;
+            // TrickleDown so Enter is seen before the text input handles it.
+            nameField.RegisterCallback<KeyDownEvent>(OnKeyDown, TrickleDown.TrickleDown);
 
-            Root.Q<Button>("ok-button").clicked += () => ViewModel.SetResult(nameField.value);
+            Root.Q<Button>("ok-button").clicked += Confirm;
             Root.Q<Button>("cancel-button").clicked += ViewModel.Cancel;
         }
+
+        private void OnKeyDown(KeyDownEvent evt)
+        {
+            if (evt.keyCode is KeyCode.Return or KeyCode.KeypadEnter) {
+                Confirm();
+            }
+        }
+
+        private void Confirm() => ViewModel.Confirm(nameField.value);
     }
 }

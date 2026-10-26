@@ -1,26 +1,22 @@
-using Cysharp.Threading.Tasks;
-using UIKit.Runtime.Core;
+using UIKit;
 using UnityEngine.UIElements;
 
 namespace Example.Profile
 {
     public class ProfileView : View<ProfileViewModel>
     {
-        private PlayerBadgeView badgeView;
-
         protected override void OnAttach()
         {
-            Root.Q<Label>("name-label").text = $"Welcome, {ViewModel.PlayerName}!";
+            // The code equivalent of a UXML binding; PlayerBadge.uxml shows the UXML form.
+            BindProperty(Root.Q<Label>("name-label"), "text", nameof(ProfileViewModel.Title));
+
             Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
 
-            var badgeContainer = Root.Q<VisualElement>("badge-container");
-            badgeView = ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(ViewModel.Badge, badgeContainer);
-        }
-
-        public override void Dispose()
-        {
-            badgeView.Dispose();
-            base.Dispose();
+            // Created through this view's ViewFactory, so it is disposed together with this
+            // view. The badge's root gets the badge ViewModel as its own dataSource, which is
+            // what its UXML bindings resolve against.
+            ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(
+                ViewModel.Badge, Root.Q<VisualElement>("badge-container"), disposeViewModel: false);
         }
     }
 }

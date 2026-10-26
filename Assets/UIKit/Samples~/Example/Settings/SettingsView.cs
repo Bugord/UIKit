@@ -1,5 +1,4 @@
-using Cysharp.Threading.Tasks;
-using UIKit.Runtime.Core;
+using UIKit;
 using UnityEngine.UIElements;
 
 namespace Example.Settings
@@ -8,13 +7,9 @@ namespace Example.Settings
     {
         protected override void OnAttach()
         {
-            var volumeSlider = Root.Q<Slider>("volume-slider");
-            volumeSlider.value = ViewModel.Volume;
-            volumeSlider.RegisterValueChangedCallback(evt => ViewModel.SetVolume(evt.newValue));
-
-            var mutedToggle = Root.Q<Toggle>("muted-toggle");
-            mutedToggle.value = ViewModel.Muted;
-            mutedToggle.RegisterValueChangedCallback(evt => ViewModel.SetMuted(evt.newValue));
+            BindProperty(Root.Q<Slider>("volume-slider"), "value", nameof(SettingsViewModel.Volume), BindingMode.TwoWay);
+            BindProperty(Root.Q<Toggle>("muted-toggle"), "value", nameof(SettingsViewModel.Muted), BindingMode.TwoWay);
+            BindProperty(Root.Q<Label>("volume-label"), "text", nameof(SettingsViewModel.VolumeText));
 
             Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
         }

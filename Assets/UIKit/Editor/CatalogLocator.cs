@@ -1,23 +1,22 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
-using UnityEngine;
 
 namespace UIKit.Editor
 {
     internal static class CatalogLocator
     {
-        public static T FindSingle<T>() where T : ScriptableObject
+        // Sorted by path so sync and validation see the catalogs in a stable order.
+        public static List<ScreenCatalog> FindAll()
         {
-            var guids = AssetDatabase.FindAssets($"t:{typeof(T).Name}");
-            if (guids.Length == 0) {
-                return null;
-            }
-
-            if (guids.Length > 1) {
-                Debug.LogWarning($"Multiple {typeof(T).Name} assets found, using the first.");
-            }
-
-            return AssetDatabase.LoadAssetAtPath<T>(
-                AssetDatabase.GUIDToAssetPath(guids[0]));
+            return AssetDatabase.FindAssets($"t:{nameof(ScreenCatalog)}")
+                .Select(AssetDatabase.GUIDToAssetPath)
+                .Distinct()
+                .OrderBy(path => path, StringComparer.Ordinal)
+                .Select(AssetDatabase.LoadAssetAtPath<ScreenCatalog>)
+                .Where(catalog => catalog != null)
+                .ToList();
         }
     }
 }

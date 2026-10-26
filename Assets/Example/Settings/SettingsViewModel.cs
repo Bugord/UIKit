@@ -1,24 +1,53 @@
-using Cysharp.Threading.Tasks;
-using UIKit.Runtime.Abstractions;
+using UIKit;
+using Unity.Properties;
+using UnityEngine;
 
 namespace Example.Settings
 {
     public class SettingsViewModel : ViewModel
     {
         private readonly IScreenNavigator navigator;
+        private readonly GameSettings settings;
 
-        public float Volume { get; private set; } = 0.5f;
-        public bool Muted { get; private set; }
+        private float volume;
+        private bool muted;
 
-        public SettingsViewModel(IScreenNavigator navigator)
+        public SettingsViewModel(IScreenNavigator navigator, GameSettings settings)
         {
             this.navigator = navigator;
+            this.settings = settings;
+            volume = settings.Volume;
+            muted = settings.Muted;
         }
 
-        public void SetVolume(float volume) => Volume = volume;
+        // Bound two-way by SettingsView: the slider writes through this setter, and
+        // SetProperty's change notification updates the bound VolumeText label.
+        [CreateProperty]
+        public float Volume
+        {
+            get => volume;
+            set {
+                if (SetProperty(ref volume, value)) {
+                    settings.Volume = value;
+                    Notify(nameof(VolumeText));
+                }
+            }
+        }
 
-        public void SetMuted(bool muted) => Muted = muted;
+        [CreateProperty]
+        public bool Muted
+        {
+            get => muted;
+            set {
+                if (SetProperty(ref muted, value)) {
+                    settings.Muted = value;
+                    Notify(nameof(VolumeText));
+                }
+            }
+        }
 
-        public UniTask CloseAsync() => navigator.CloseAsync(this);
+        [CreateProperty] public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+
+        public Awaitable CloseAsync() => navigator.CloseAsync(this);
     }
 }

@@ -1,4 +1,4 @@
-using UIKit.Runtime.Core;
+using UIKit;
 using UnityEngine.UIElements;
 
 namespace Example.Confirmation
@@ -7,7 +7,7 @@ namespace Example.Confirmation
     {
         protected override void OnAttach()
         {
-            Root.Q<Button>("yes-button").clicked += () => ViewModel.SetResult(true);
+            Root.Q<Button>("yes-button").clicked += ViewModel.Confirm;
             Root.Q<Button>("no-button").clicked += ViewModel.Cancel;
         }
     }

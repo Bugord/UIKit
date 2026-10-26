@@ -6,9 +6,30 @@
     xsi:noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
 >
     <ui:Style src="../Example.uss" />
+    <!--
+        Runtime data binding: each label binds its "text" to a [CreateProperty] member of
+        PlayerBadgeViewModel. The view sets the ViewModel as this root's dataSource, so
+        data-source-path is just the property name, and the labels refresh whenever the
+        ViewModel raises Notify for it. PlayerBadgeView itself has no label code.
+    -->
     <ui:VisualElement name="player-badge" class="badge">
-        <ui:Label name="level-label" text="Level 1" />
-        <ui:Label name="score-label" text="Score: 0" />
+        <ui:VisualElement class="badge-info">
+            <ui:Label name="player-name-label" text="Player" class="badge-name">
+                <Bindings>
+                    <ui:DataBinding property="text" data-source-path="PlayerName" binding-mode="ToTarget" />
+                </Bindings>
+            </ui:Label>
+            <ui:Label name="level-label" text="Level 1">
+                <Bindings>
+                    <ui:DataBinding property="text" data-source-path="LevelText" binding-mode="ToTarget" />
+                </Bindings>
+            </ui:Label>
+        </ui:VisualElement>
+        <ui:Label name="score-label" text="Score: 0">
+            <Bindings>
+                <ui:DataBinding property="text" data-source-path="ScoreText" binding-mode="ToTarget" />
+            </Bindings>
+        </ui:Label>
         <ui:Button name="add-score-button" text="+10" class="badge-button" />
     </ui:VisualElement>
 </ui:UXML>

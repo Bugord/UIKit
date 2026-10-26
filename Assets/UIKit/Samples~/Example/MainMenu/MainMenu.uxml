@@ -9,11 +9,12 @@
     <ui:VisualElement name="main-menu" class="screen-fill">
         <ui:VisualElement class="panel">
             <ui:Label text="UIKit Example" class="title" />
+            <ui:Label name="greeting-label" text="Hello" class="subtitle" />
             <ui:Button name="play-button" text="Play" class="menu-button" />
             <ui:Button name="settings-button" text="Settings" class="menu-button" />
             <ui:Button name="rename-button" text="Rename" class="menu-button" />
             <ui:Button name="profile-button" text="Profile" class="menu-button" />
-            <ui:Label name="status-label" text=" " class="status-label" />
+            <ui:Label name="status-label" class="status-label" />
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
