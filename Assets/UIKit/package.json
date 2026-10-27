@@ -1,9 +1,9 @@
 {
   "name": "com.bugord.uikit",
   "displayName": "UIKit",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "unity": "6000.0",
-  "description": "MVVM framework for Unity UI Toolkit: views, view models, widgets and screen navigation, with an optional VContainer integration.",
+  "description": "MVVM framework for Unity UI Toolkit: views, view models, widgets and screen navigation, with optional VContainer and Zenject integrations. Works without a DI container too.",
   "keywords": [
     "ui",
     "uitoolkit",
@@ -16,13 +16,11 @@
     "name": "Bugord"
   },
   "category": "Scripting",
-  "dependencies": {
-    "com.cysharp.unitask": "2.5.10"
-  },
+  "dependencies": {},
   "samples": [
     {
       "displayName": "Example",
-      "description": "Screens, popups, payloads, and result flows wired up end-to-end with VContainer. Open the included scene and press Play.",
+      "description": "Screens, popups, payloads and result flows wired up end-to-end. Includes a scene that needs no DI container, plus VContainer and Zenject variants that compile only when those packages are installed. Open a scene and press Play.",
       "path": "Samples~/Example"
     }
   ]

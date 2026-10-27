@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &2003055309
+--- !u!1 &1046483101
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,40 +127,36 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 2003055311}
-  - component: {fileID: 2003055310}
+  - component: {fileID: 1046483103}
+  - component: {fileID: 1046483102}
   m_Layer: 0
-  m_Name: ExampleLifetimeScope
+  m_Name: ExampleBootstrap
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2003055310
+--- !u!114 &1046483102
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2003055309}
+  m_GameObject: {fileID: 1046483101}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c66820af748fe56499e1d617a332ebe7, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  parentReference:
-    TypeName:
-  autoRun: 1
-  autoInjectGameObjects: []
-  screenCatalog: {fileID: 11400000, guid: 37daea5fa1a41df49b0160f7bf56f4f5, type: 2}
+  m_Script: {fileID: 11500000, guid: 8264ef0b09ac4fc9bb170510aefbbf53, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UIKit.Example::Example.ExampleBootstrap
   panelSettings: {fileID: 11400000, guid: 720ca52ee59a23d43a2f7fd1869b2924, type: 2}
---- !u!4 &2003055311
+  screenCatalog: {fileID: 11400000, guid: 37daea5fa1a41df49b0160f7bf56f4f5, type: 2}
+--- !u!4 &1046483103
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2003055309}
+  m_GameObject: {fileID: 1046483101}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -173,4 +169,4 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 2003055311}
+  - {fileID: 1046483103}

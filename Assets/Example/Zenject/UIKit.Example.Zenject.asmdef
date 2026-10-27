@@ -1,0 +1,27 @@
+{
+    "name": "UIKit.Example.Zenject",
+    "rootNamespace": "Example.Zenject",
+    "references": [
+        "UIKit",
+        "UIKit.Example",
+        "UIKit.Zenject",
+        "Zenject"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UIKIT_ZENJECT"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.svermeulen.extenject",
+            "expression": "1.0.0",
+            "define": "UIKIT_ZENJECT"
+        }
+    ],
+    "noEngineReferences": false
+}

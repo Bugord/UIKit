@@ -11,6 +11,7 @@
             <ui:Label text="Settings" class="title" />
             <ui:Slider name="volume-slider" label="Volume" low-value="0" high-value="1" />
             <ui:Toggle name="muted-toggle" label="Muted" />
+            <ui:Label name="volume-label" text="50%" class="status-label" />
             <ui:Button name="back-button" text="Back" class="menu-button" style="margin-top: 16px;" />
         </ui:VisualElement>
     </ui:VisualElement>

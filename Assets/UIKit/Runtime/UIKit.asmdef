@@ -1,9 +1,7 @@
 {
     "name": "UIKit",
-    "rootNamespace": "",
-    "references": [
-        "UniTask"
-    ],
+    "rootNamespace": "UIKit",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

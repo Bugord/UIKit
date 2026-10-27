@@ -1,134 +1,423 @@
 # UIKit
 
 An MVVM framework for Unity's UI Toolkit: views, view models, and screen/popup
-navigation, with an optional VContainer integration.
+navigation. Works without a DI container, and has optional
+[VContainer](https://github.com/hadashiA/VContainer) and
+[Zenject / Extenject](https://github.com/Mathijs-Bakker/Extenject) integrations.
 
 ## Installing
 
-Add it to your project via the Unity Package Manager, using the Git URL with a
-`path` query pointing at this package folder:
+Add it via the Unity Package Manager, using the Git URL with a `path` query pointing
+at the package folder, pinned to a release tag:
 
 ```
-https://github.com/Bugord/UIKit.git?path=Assets/UIKit
+https://github.com/Bugord/UIKit.git?path=Assets/UIKit#v0.6.0
 ```
 
 Package Manager → `+` → *Add package from git URL...* → paste the URL above.
 
-Requires:
-- Unity 6000.0+
-- [UniTask](https://github.com/Cysharp/UniTask) (`com.cysharp.unitask`)
-- [VContainer](https://github.com/hadashiA/VContainer) — only if you use the bundled VContainer integration (`Runtime/Integrations/VContainer`)
+### Requirements
 
-## Quickstart
+- Unity 6 (`package.json` declares `6000.0`). The tests pass on 6000.3.20f1 and 6000.6.0f1;
+  the 6000.3 run had no DI package and no UniTask installed. 6000.0 to 6000.2 are untested.
+  Async APIs return `UnityEngine.Awaitable`, so there is no UniTask dependency.
+- Optional: VContainer (`jp.hadashikick.vcontainer`) or Extenject
+  (`com.svermeulen.extenject`). Each adapter assembly compiles only when its package is
+  installed through the Package Manager (an asmdef version define turns on `UIKIT_VCONTAINER`
+  / `UIKIT_ZENJECT`). If you have VContainer or Zenject as plain files under `Assets`, the
+  define cannot fire: add `UIKIT_VCONTAINER` / `UIKIT_ZENJECT` to *Player Settings → Scripting
+  Define Symbols* yourself.
+- A `PanelSettings` asset with a theme (*Create → UI Toolkit → Panel Settings Asset*), or an
+  `IUIRootProvider` to host the UI inside your own `UIDocument`.
 
-This walks through wiring up a single screen end-to-end. For a fuller, runnable
-sample (popups, payloads, and result flows), import **Example** from
-Package Manager → UIKit → Samples, then open its scene and press Play.
+## Quick start (no DI)
 
-1. **Create a Screen Catalog.** Right-click in the Project window →
-   `Create > UIKit > Screen Catalog`. Only one should exist per project.
+1. **Create a Screen Catalog:** *Create → UIKit → Screen Catalog*.
 
-2. **Write a ViewModel.** The screen's id is derived from the type name with a
-   trailing `ViewModel` stripped — `MainMenuViewModel` → id `"MainMenu"`.
+2. **Write a ViewModel.** The screen id is the type name without a trailing `ViewModel`:
+   `MainMenuViewModel` → `"MainMenu"`.
 
    ```csharp
+   using Unity.Properties;
+   using UIKit;
+
    public class MainMenuViewModel : ViewModel
    {
+       private readonly IScreenNavigator navigator;
+       private int clicks;
+
+       public MainMenuViewModel(IScreenNavigator navigator)
+       {
+           this.navigator = navigator;
+       }
+
        public string Greeting => "Hello, UIKit!";
+
+       [CreateProperty]
+       public int Clicks
+       {
+           get => clicks;
+           private set => SetProperty(ref clicks, value);
+       }
+
+       public void Click() => Clicks++;
    }
    ```
 
-3. **Write a View and matching UXML.** The UXML file must be named the same as
-   the screen id (`MainMenu.uxml`) so auto-sync can match it to the catalog, and
-   must have exactly one root element — a view exposes a single `Root`, and
-   sibling roots would be left behind in the layer when it is disposed.
+3. **Write a View and a UXML file named after the id** (`MainMenu.uxml`). The UXML must have
+   exactly one root element.
 
    ```csharp
+   using UnityEngine.UIElements;
+   using UIKit;
+
    public class MainMenuView : View<MainMenuViewModel>
    {
        protected override void OnAttach()
        {
            Root.Q<Label>("greeting-label").text = ViewModel.Greeting;
+           Root.Q<Button>("click-button").clicked += ViewModel.Click;
        }
    }
    ```
 
-4. **Let auto-sync run.** Saving the script triggers `[DidReloadScripts]`, which
-   registers `MainMenu` in the catalog. Open `Project Settings > UI Kit` to confirm
-   it's listed with the UXML resolved (an unresolved UXML blocks builds); use
-   "Sync with code" there if it doesn't pick it up automatically.
+4. **Sync the catalog.** Saving a script triggers a sync that lists `MainMenu` in the
+   catalog and picks up `MainMenu.uxml`. Open *Project Settings → UI Kit* to check it (an
+   entry without a UXML fails the build); *Sync with code* there re-runs it.
 
-5. **Wire it into DI.** In a `LifetimeScope`:
+5. **Create the context and open the screen.**
 
    ```csharp
-   protected override void Configure(IContainerBuilder builder)
+   using UnityEngine;
+   using UnityEngine.UIElements;
+   using UIKit;
+
+   public class Boot : MonoBehaviour
    {
-       builder.AddUIKit(screenCatalog, panelSettings);
-       builder.RegisterScreen<MainMenuViewModel, MainMenuView>();
+       [SerializeField] private PanelSettings panelSettings;
+       [SerializeField] private ScreenCatalog catalog;
+
+       private UIKitContext ui;
+
+       private void Start()
+       {
+           ui = new UIKitContext(panelSettings, catalog);
+           ui.Register<MainMenuViewModel, MainMenuView>(() => new MainMenuViewModel(ui.Navigator));
+
+           ui.Navigator.OpenAsync<MainMenuViewModel>().Forget();
+       }
+
+       private void OnDestroy() => ui?.Dispose();
    }
    ```
 
-6. **Open it.** From an `IStartable`, another ViewModel, or anywhere else with
-   `IScreenNavigator` injected:
+   `Register<TViewModel, TView>(createViewModel)` needs a view with a parameterless
+   constructor; the overload `Register(createViewModel, createView)` takes both factories.
+   Both are called every time the screen opens. Disposing the context disposes every open
+   screen immediately, without hide animations, and destroys the panel it created. A show or
+   hide animation that is still running gets its `CancellationToken` cancelled, so a view with
+   a custom `ShowAsync` / `HideAsync` should honour the token. An open still in flight faults
+   with `OperationCanceledException`. The same applies to a `ScreenGroup` or a DI scope.
 
-   ```csharp
-   await navigator.OpenAsync<MainMenuViewModel>();
-   ```
+`Forget()` is a `UIKit` extension on `Awaitable`: it runs the call without awaiting and
+logs an exception instead of losing it (cancellation is ignored).
 
-## Usage
-
-Every ViewModel and View pair below needs one line in your `LifetimeScope`:
-
-```csharp
-builder.RegisterScreen<SettingsViewModel, SettingsView>();
-```
-
-### A screen that closes itself
-
-A ViewModel takes `IScreenNavigator` from the container and calls `CloseAsync(this)`.
-The View reads and writes the ViewModel, never the other way around.
+## VContainer
 
 ```csharp
-public class SettingsViewModel : ViewModel
+using UIKit;
+using UIKit.VContainer;
+using UnityEngine;
+using UnityEngine.UIElements;
+using VContainer;
+using VContainer.Unity;
+
+public class AppLifetimeScope : LifetimeScope
+{
+    [SerializeField] private PanelSettings panelSettings;
+    [SerializeField] private ScreenCatalog catalog;
+
+    protected override void Configure(IContainerBuilder builder)
+    {
+        builder.AddUIKit(panelSettings, catalog);
+        builder.RegisterScreen<MainMenuViewModel, MainMenuView>();
+        builder.RegisterEntryPoint<Boot>();
+    }
+}
+
+public class Boot : IStartable
 {
     private readonly IScreenNavigator navigator;
 
-    public float Volume { get; private set; } = 0.5f;
+    public Boot(IScreenNavigator navigator) => this.navigator = navigator;
 
-    public SettingsViewModel(IScreenNavigator navigator)
+    public void Start() => navigator.OpenAsync<MainMenuViewModel>().Forget();
+}
+```
+
+`AddUIKit` registers `UIKitContext`, `IScreenNavigator` and `IViewFactory`; call it once, in
+the scope that should own the UI root and the navigation stack. `RegisterScreen` registers
+the ViewModel and the View as transient, so a ViewModel can take any registered service in
+its constructor. It may be called in any scope: a screen registered in a child
+`LifetimeScope` resolves its ViewModel from that scope, and it is force-closed and
+unregistered when that scope is disposed. There is still one panel and one navigation stack.
+
+## Zenject / Extenject
+
+```csharp
+using UIKit;
+using UIKit.Zenject;
+using UnityEngine;
+using UnityEngine.UIElements;
+using Zenject;
+
+public class AppInstaller : MonoInstaller
+{
+    [SerializeField] private PanelSettings panelSettings;
+    [SerializeField] private ScreenCatalog catalog;
+
+    public override void InstallBindings()
     {
-        this.navigator = navigator;
+        Container.BindUIKit(panelSettings, catalog);
+        Container.RegisterScreen<MainMenuViewModel, MainMenuView>();
+        Container.BindInterfacesTo<Boot>().AsSingle().NonLazy();
     }
-
-    public void SetVolume(float volume) => Volume = volume;
-
-    public UniTask CloseAsync() => navigator.CloseAsync(this);
 }
 
-public class SettingsView : View<SettingsViewModel>
+public class Boot : IInitializable
+{
+    private readonly IScreenNavigator navigator;
+
+    public Boot(IScreenNavigator navigator) => this.navigator = navigator;
+
+    public void Initialize() => navigator.OpenAsync<MainMenuViewModel>().Forget();
+}
+```
+
+`BindUIKit` binds `UIKitContext`, `IScreenNavigator` and `IViewFactory` in that container.
+`RegisterScreen` works in any container; screens registered in a subcontainer close when it is
+disposed.
+
+## Hosting inside your own UIDocument
+
+Pass an `IUIRootProvider` instead of a `PanelSettings` to `UIKitContext`, `AddUIKit` or
+`BindUIKit`. `VisualElementRootProvider` adds the screen and popup layers to any element:
+
+```csharp
+var rootProvider = new VisualElementRootProvider(uiDocument.rootVisualElement);
+ui = new UIKitContext(rootProvider, catalog);
+```
+
+The context does not own a provider you pass in.
+
+## ViewModels, Views and data binding
+
+A `ViewModel` implements `INotifyBindablePropertyChanged`, and its `View` sets the root
+element's `dataSource` to it. Mark properties with `[CreateProperty]` and raise changes with
+`SetProperty` (a field-backed property) or `Notify` (a computed one), then bind in UXML:
+
+```xml
+<ui:Label>
+    <Bindings>
+        <ui:DataBinding property="text" data-source-path="Clicks" binding-mode="ToTarget" />
+    </Bindings>
+</ui:Label>
+```
+
+or in code, inside `OnAttach`:
+
+```csharp
+BindText("clicks-label", nameof(MainMenuViewModel.Clicks));          // a TextElement's text, one way
+BindValue("volume-slider", nameof(SettingsViewModel.Volume));        // a field's value, two-way by default
+BindProperty(Require<ProgressBar>("progress"), "title", nameof(LoadingViewModel.ProgressText));
+var slider = Require<Slider>("volume-slider");                       // throws if it is missing
+```
+
+`BindText` and `BindValue` take an element name or the element itself; `BindProperty` binds any
+property. `Require<T>(name)` is `Root.Q<T>(name)` that throws `InvalidOperationException` naming
+the view, the element type and the name, instead of returning `null`.
+
+In the editor and in development builds every bind call checks the ViewModel property through
+Unity.Properties, against the ViewModel's runtime type, and throws `ArgumentException` when it
+does not exist (a typo, or a property without `[CreateProperty]`) or when a `TwoWay` / `ToSource`
+binding targets a read-only property. Release builds skip the check.
+
+### Computed properties
+
+A property computed from others declares them with `[DependsOn]`; notifying a source, through
+`SetProperty` or `Notify`, notifies its dependents too:
+
+```csharp
+[CreateProperty]
+public float Volume { get => volume; set => SetProperty(ref volume, value); }
+
+[CreateProperty, DependsOn(nameof(Volume), nameof(Muted))]
+public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
+```
+
+Dependencies chain (a dependent of a dependent is notified too). The source is raised first, then
+its dependents breadth-first, each once per call even when several paths reach it. The map is built
+once per ViewModel type, including inherited and non-public properties; an unknown name or a cycle
+throws `InvalidOperationException` when the ViewModel is constructed. For values computed from
+state the ViewModel does not own, notify them together when that state changes:
+`Notify(nameof(PlayerName), nameof(LevelText), nameof(ScoreText))`.
+
+### Commands
+
+Expose actions as commands and bind them to buttons:
+
+```csharp
+public class MainMenuViewModel : ViewModel
+{
+    public AsyncCommand Play { get; }
+    public AsyncCommand OpenSettings { get; }
+    public Command Reset { get; }
+
+    public MainMenuViewModel(IScreenNavigator navigator)
+    {
+        var navigation = new CommandGate();
+        Play = new AsyncCommand(PlayAsync, navigation);
+        OpenSettings = new AsyncCommand(OpenSettingsAsync, navigation);
+        Reset = new Command(ResetProgress, () => HasProgress);
+    }
+    // ...
+}
+
+// in the view's OnAttach
+BindCommand("play-button", ViewModel.Play);
+BindCommand("settings-button", ViewModel.OpenSettings);
+BindCommand("reset-button", ViewModel.Reset);
+```
+
+- `Command` runs an `Action`. Its optional predicate is read on demand; call
+  `RaiseCanExecuteChanged()` when the predicate's inputs change.
+- `AsyncCommand` runs a `Func<Awaitable>` and cannot execute again until it finishes, so a
+  double click does not start it twice. `IsRunning` is reset however it ends, and
+  `CanExecuteChanged` is raised when it starts and when it finishes. `Execute()` runs it without
+  waiting (a failure is logged like `Forget()`); `ExecuteAsync()` returns an awaitable for code
+  and tests. A call while it cannot execute is ignored and returns a completed awaitable.
+- `AsyncCommand`s created with the same `CommandGate` are mutually exclusive: while one runs,
+  none of them can execute, so two buttons clicked in the same frame cannot both navigate.
+
+`BindCommand(button or name, command)` runs the command on click and keeps the button enabled
+only while `CanExecute` is true (through `SetEnabled`). The view unsubscribes from the command
+and the button when it is disposed, so a command on a ViewModel that outlives the view (a child
+view's, for one) does not keep the view alive. `IsRunning` is a plain property of the command, not
+of the ViewModel, so a UXML binding to it would never refresh; expose a ViewModel property if the
+UI must show it.
+
+### Reacting to a change
+
+For a reaction a binding cannot express (an animation, an effect, focus), use `Observe` in
+`OnAttach`. It runs on each change of that property, but not on registration, so keep state in
+bindings:
+
+```csharp
+Observe(nameof(MainMenuViewModel.Clicks), PlayClickEffect);
+Observe<int>(nameof(MainMenuViewModel.Clicks), clicks => Debug.Log($"{clicks} clicks"));
+```
+
+`Observe<T>` passes the new value, read through Unity.Properties as a binding reads it. `T` must
+be the property's type or one it is assignable to; in the editor and development builds a
+mismatch throws when `Observe<T>` is called. A release build does not check, and if the value
+cannot be read it skips the callback and logs an error once. Both forms need a `[CreateProperty]`
+property, checked like a binding. Callbacks for a property run in registration order and never
+after the view is disposed.
+
+`OnPropertyChanged(string propertyName)` is still there for a view that wants every change; it
+runs after the `Observe` callbacks.
+
+Lifecycle:
+
+- `View.OnAttach()` runs once the root exists and the ViewModel is bound; query elements here.
+  `View.CreateRoot()` lets a view build its root in code instead of from UXML.
+- `ViewModel.OnOpened()` / `OnClosed()` are called by the navigator after the screen is shown
+  and when it starts closing. `OnClosed` is not called when the screen is force-closed because
+  its context, group or scope was disposed; `OnDispose` runs either way.
+- `ViewModel.LifetimeToken` is cancelled when the ViewModel is disposed; pass it to work that
+  must not outlive the screen.
+- `ShowAsync(CancellationToken)` / `HideAsync(CancellationToken)` on the view return
+  `Awaitable` and are virtual: override them to animate, and honour the token (it is cancelled
+  when the screen's context, group or scope is disposed mid-animation).
+- **`Dispose()` is not virtual** on either class. Override `OnDispose()` instead. A view
+  disposes its ViewModel, and the navigator disposes the view when the screen closes.
+
+### Child views
+
+A view can host child views built through its `ViewFactory`. The child is an ordinary
+View/ViewModel pair with its own UXML that the navigator never opens. The parent view
+disposes its children automatically.
+
+Register only the view, since the parent supplies the ViewModel:
+
+```csharp
+ui.RegisterView<PlayerBadgeViewModel, PlayerBadgeView>();            // no DI
+builder.RegisterView<PlayerBadgeViewModel, PlayerBadgeView>();       // VContainer
+Container.RegisterView<PlayerBadgeViewModel, PlayerBadgeView>();     // Zenject
+```
+
+Opening a view registered this way through the navigator throws `InvalidOperationException`.
+
+```csharp
+public class ProfileView : View<ProfileViewModel>
 {
     protected override void OnAttach()
     {
-        var slider = Root.Q<Slider>("volume-slider");
-        slider.value = ViewModel.Volume;
-        slider.RegisterValueChangedCallback(evt => ViewModel.SetVolume(evt.newValue));
-
-        Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
+        var container = Root.Q<VisualElement>("badge-container");
+        ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(
+            ViewModel.Badge, container, disposeViewModel: false);   // ProfileViewModel owns Badge
     }
 }
 ```
 
-`clicked` handlers are `void`, so navigation is started with `.Forget()`. When you
-need the result, call an `async UniTaskVoid` method instead — see below.
+`Create<TView, TViewModel>(viewModel, container, disposeViewModel = true)` needs the view type
+at compile time. `Create(viewModel, container)` picks the view from the ViewModel's runtime
+type, and returns an `IView`. Pass `disposeViewModel: false` when something else owns the
+ViewModel.
 
-### A popup that returns a value
-
-Derive from `PopupViewModel<TResult>` and supply the result used when the popup is
-dismissed. Auto-sync puts these on the popup layer, so backdrop clicks and
-Escape/gamepad-cancel resolve them via `Cancel()` without any extra wiring.
+## Navigation
 
 ```csharp
-[UIScreen("Confirmation")]
+var handle = await navigator.OpenAsync<SettingsViewModel>();   // ScreenHandle<SettingsViewModel>
+await navigator.ReplaceAsync<LoginViewModel>();                // closes the top entry of its layer
+await navigator.CloseAsync(handle.ViewModel);                  // or: await handle.CloseAsync();
+await navigator.GoBackAsync();                                 // top popup, else top screen (never the last)
+await navigator.PopToRootAsync();                              // everything but the bottom screen
+await navigator.CloseAllAsync();
+```
+
+`IsOpen(viewModel)` and `Top` report the current state. All of these run one at a time, in call
+order, through a FIFO gate. **Do not `await` a navigator call from `OnAttach`, `ShowAsync`,
+`HideAsync`, `OnOpened` or `OnClosed`:** it would wait for the operation that is running it.
+Use `.Forget()` to queue it. If an operation blocks the queue for longer than
+`UIKitContext.StallWarningSeconds` (default 5), UIKit logs an error naming it; set it to 0 to
+disable the check, or raise it if a transition really takes that long. The watchdog stops
+when the context is disposed.
+
+A screen shown by the navigator closes with the scope or context that registered it; do not
+keep a `ScreenHandle` past that.
+
+### Payloads
+
+Implement `IPayloadReceiver<TPayload>`. The payload arrives before the view attaches.
+
+```csharp
+public class ProfileViewModel : ViewModel, IPayloadReceiver<string>
+{
+    public string PlayerName { get; private set; } = string.Empty;
+
+    public void SetPayload(string payload) => PlayerName = payload;
+}
+
+await navigator.OpenAsync<ProfileViewModel, string>("Ada");
+```
+
+## Popups with results
+
+Derive from `PopupViewModel<TResult>` and give the value that dismissal resolves to. A
+`ResultViewModel<TResult>` resolves with `SetResult`; the first result wins.
+
+```csharp
 public class ConfirmPopupViewModel : PopupViewModel<bool>
 {
     protected override bool CancelResult => false;
@@ -142,361 +431,112 @@ public class ConfirmPopupView : View<ConfirmPopupViewModel>
         Root.Q<Button>("no-button").clicked += ViewModel.Cancel;
     }
 }
+
+bool confirmed = await navigator.RunAsync<ConfirmPopupViewModel, bool>();
 ```
 
-`RunAsync` shows it, waits for a result, then hides and disposes it:
+`RunAsync` opens the popup, waits for a result, plays the hide animation and disposes it.
+With a payload: `RunAsync<TViewModel, TPayload, TResult>(payload)`. If the popup is closed
+from outside (backdrop, Escape, `GoBackAsync`, `CloseAsync`) and its ViewModel is `ICancelable`,
+`Cancel()` runs first, so `RunAsync` returns `CancelResult`. For a ViewModel that is not
+`ICancelable`, it throws `OperationCanceledException`, as does a cancelled token.
+Waiting for a result does not hold the navigation queue.
+
+The generic `TResult` has to be written out; the compiler cannot infer it.
+
+## `[UIScreen]`, layers and dismiss triggers
+
+With no attribute, a ViewModel's screen:
+
+- has the id `TypeNameWithoutViewModel`, which is also its catalog key and the UXML file name;
+- opens on `UILayer.Popup` if it implements `IPopup` (`PopupViewModel<T>` does), else on
+  `UILayer.Screen`;
+- is dismissed by `DismissTriggers.All` as a popup, and by `DismissTriggers.NavigationCancel`
+  as a screen.
+
+Screens stack and only the top one is shown; popups stack above every screen and stay visible
+underneath each other. Only the top entry takes input and focus: the top screen is focused
+once its layer is attached to a panel, also after the host rebuilds its root.
+
+`[UIScreen]` overrides any of this:
 
 ```csharp
-var confirmed = await navigator.RunAsync<ConfirmPopupViewModel, bool>();
+[UIScreen("Confirmation")]                                      // fixed id / UXML name
+public class ConfirmPopupViewModel : PopupViewModel<bool> { /* ... */ }
+
+[UIScreen(UILayer.Popup, "Toast", Dismiss = DismissTriggers.None)]
+public class ToastViewModel : ViewModel { }
+
+[UIScreen(Dismiss = DismissTriggers.None)]                       // a screen Escape will not close
+public class LevelViewModel : ViewModel { }
 ```
 
-The `[UIScreen]` attribute is optional — it pins the id (and so the UXML file name)
-when you don't want the one derived from the type name. Without it this screen's id
-would be `ConfirmPopup`.
+`DismissTriggers` is a flags enum:
 
-### Passing data in
+| Trigger | Meaning |
+| --- | --- |
+| `BackdropClick` | Pointer press outside the popup's content (its root element is the backdrop). Popups only. |
+| `NavigationCancel` | Escape or the gamepad cancel button. The bottom screen of the stack is never dismissed this way. |
+| `All` / `None` | Both / neither. |
 
-Implement `IPayloadReceiver<TPayload>`; the payload arrives before the View attaches,
-so `OnAttach` can already read it.
+Dismissing closes the entry like `CloseAsync` does, cancelling an `ICancelable` ViewModel first.
+
+## Catalogs
+
+A `ScreenCatalog` maps a screen id to its UXML. Keep it in sync with the code in *Project
+Settings → UI Kit*: it syncs when scripts reload, and *Sync with code* forces it. An entry with
+no UXML fails the build with a message naming it.
+
+A project may have several catalogs, for example one per feature module. Each lists the
+assemblies whose views it holds; the catalog that lists none is the default and takes every
+assembly nobody claims. Pass all of them to `AddUIKit`, `BindUIKit` or `UIKitContext`:
 
 ```csharp
-[UIScreen("RenameName")]
-public class NameInputPopupViewModel : PopupViewModel<string>, IPayloadReceiver<string>
-{
-    public string InitialName { get; private set; } = string.Empty;
-
-    protected override string CancelResult => InitialName;
-
-    public void SetPayload(string payload) => InitialName = payload;
-}
+builder.AddUIKit(panelSettings, mainCatalog, battleCatalog);
 ```
 
-Both entry points take a payload overload — `RunAsync<TViewModel, TPayload, TResult>`
-for a value, `OpenAsync<TViewModel, TPayload>` for a screen you keep around:
+A screen listed in two catalogs throws. Screens that are not in any passed catalog throw when
+first opened, naming the id.
+
+## Using UniTask
+
+UIKit does not depend on UniTask. Its calls return `Awaitable` / `Awaitable<T>`, which can be
+awaited only once. In UniTask code convert them with `.AsUniTask()`:
 
 ```csharp
-var newName = await navigator.RunAsync<NameInputPopupViewModel, string, string>(playerName);
-var handle = await navigator.OpenAsync<ProfileViewModel, string>(playerName);
+using Cysharp.Threading.Tasks;
+
+var confirmed = await navigator.RunAsync<ConfirmPopupViewModel, bool>().AsUniTask();
 ```
 
-### Keeping a handle
+## Sample
 
-`OpenAsync` returns a `ScreenHandle<TViewModel>` exposing `ViewModel`, `IsOpen`, and
-`CloseAsync()`. It's the idiomatic way to avoid opening the same screen twice:
+*Package Manager → UIKit → Samples → Example* imports screens, popups, payloads, child views
+and result flows in three variants: a scene with no DI container, and VContainer and Zenject
+variants that compile only when those packages are installed. Open a scene and press Play.
 
-```csharp
-private ScreenHandle<SettingsViewModel> settingsHandle;
+## Running the tests
 
-public async UniTask OpenSettingsAsync()
-{
-    if (settingsHandle is { IsOpen: true }) {
-        return;
-    }
+The package ships EditMode and PlayMode tests in `Tests/`, including VContainer and Zenject
+adapter tests that compile only when those packages are installed. To run them from a
+consumer project, add the package to `testables` in `Packages/manifest.json`:
 
-    settingsHandle = await navigator.OpenAsync<SettingsViewModel>();
-}
+```json
+"testables": ["com.bugord.uikit"]
 ```
-
-### Awaiting a result from a View
-
-```csharp
-public class MainMenuView : View<MainMenuViewModel>
-{
-    private Label statusLabel;
-
-    protected override void OnAttach()
-    {
-        statusLabel = Root.Q<Label>("status-label");
-        Root.Q<Button>("play-button").clicked += () => PlayAsync().Forget();
-    }
-
-    private async UniTaskVoid PlayAsync()
-    {
-        var confirmed = await ViewModel.StartGameAsync();
-        statusLabel.text = confirmed ? "Game started!" : "Start cancelled.";
-    }
-}
-```
-
-### Nested views and view models
-
-A screen doesn't have to be one View. Any element of a view's tree can host a child view
-built through `ViewFactory`. The child is an ordinary View/ViewModel pair — registered the
-same way, with its own UXML — but the navigator never sees it: the parent owns it.
-
-The child pair looks like any other, it just never gets opened by the navigator:
-
-```csharp
-public class PlayerBadgeViewModel : ViewModel
-{
-    public int Level { get; private set; } = 1;
-    public int Score { get; private set; }
-
-    public void AddScore(int amount) => Score += amount;
-}
-
-public class PlayerBadgeView : View<PlayerBadgeViewModel>
-{
-    private Label scoreLabel;
-
-    protected override void OnAttach()
-    {
-        Root.Q<Label>("level-label").text = $"Level {ViewModel.Level}";
-
-        scoreLabel = Root.Q<Label>("score-label");
-        scoreLabel.text = $"Score: {ViewModel.Score}";
-
-        Root.Q<Button>("add-score-button").clicked += () => {
-            ViewModel.AddScore(10);
-            scoreLabel.text = $"Score: {ViewModel.Score}";
-        };
-    }
-}
-```
-
-The parent ViewModel takes the child ViewModel as a constructor dependency and exposes it.
-`RegisterScreen` registers ViewModels as transient, so the parent gets its own instance:
-
-```csharp
-public class ProfileViewModel : ViewModel, IPayloadReceiver<string>
-{
-    private readonly IScreenNavigator navigator;
-
-    public string PlayerName { get; private set; } = string.Empty;
-    public PlayerBadgeViewModel Badge { get; }
-
-    public ProfileViewModel(IScreenNavigator navigator, PlayerBadgeViewModel badge)
-    {
-        this.navigator = navigator;
-        Badge = badge;
-    }
-
-    public void SetPayload(string payload) => PlayerName = payload;
-
-    public UniTask CloseAsync() => navigator.CloseAsync(this);
-}
-```
-
-The parent View clones the child's UXML into a container element and binds it in one call,
-then disposes it on the way out:
-
-```csharp
-public class ProfileView : View<ProfileViewModel>
-{
-    private PlayerBadgeView badgeView;
-
-    protected override void OnAttach()
-    {
-        Root.Q<Label>("name-label").text = $"Welcome, {ViewModel.PlayerName}!";
-        Root.Q<Button>("back-button").clicked += () => ViewModel.CloseAsync().Forget();
-
-        var badgeContainer = Root.Q<VisualElement>("badge-container");
-        badgeView = ViewFactory.Create<PlayerBadgeView, PlayerBadgeViewModel>(ViewModel.Badge, badgeContainer);
-    }
-
-    public override void Dispose()
-    {
-        badgeView.Dispose();
-        base.Dispose();
-    }
-}
-```
-
-Both pairs are registered side by side, in the same scope as any other screen:
-
-```csharp
-builder.RegisterScreen<ProfileViewModel, ProfileView>();
-builder.RegisterScreen<PlayerBadgeViewModel, PlayerBadgeView>();
-```
-
-Worth knowing:
-
-- The child needs a catalog entry like any screen, so `PlayerBadge.uxml` has to exist and
-  have exactly one root element. Its layer and popup options are ignored — the UXML is
-  cloned into the container you pass, not into a layer.
-- Nesting goes as deep as you like: `ViewFactory.Create` hands the new view its own
-  `ViewFactory`, so `PlayerBadgeView` can build grandchildren the same way.
-- The navigator only shows, hides and disposes the screen's root view. `ShowAsync` and
-  `HideAsync` are never called on children — if a child animates, forward the call from
-  the parent's override.
-- `badgeView.Dispose()` also disposes `ViewModel.Badge`, because a view owns its ViewModel.
-  Don't dispose the child ViewModel separately. If the parent needs to keep that ViewModel
-  alive past the child view (e.g. it hands the same instance to several sibling views), pass
-  `disposeViewModel: false` to `Create`.
-
-For a list of children, keep them in a collection and dispose the whole collection whenever
-you rebuild it:
-
-```csharp
-private readonly List<InventorySlotView> slotViews = new();
-
-private void RebuildSlots()
-{
-    foreach (var slotView in slotViews) {
-        slotView.Dispose();
-    }
-
-    slotViews.Clear();
-
-    foreach (var slot in ViewModel.Slots) {
-        slotViews.Add(ViewFactory.Create<InventorySlotView, InventorySlotViewModel>(slot, slotsContainer));
-    }
-}
-```
-
-Each child ViewModel here comes from the parent ViewModel (`ViewModel.Slots`), not from the
-container: this overload only resolves the *view*, so a parent is free to create its child
-ViewModels itself when how many of them there are depends on data. The pair still needs its
-`RegisterScreen<InventorySlotViewModel, InventorySlotView>()` line and its `InventorySlot.uxml`.
-
-#### Children whose type isn't known at the call site
-
-When the children share an abstract ViewModel base but each subclass has its own View, the
-generic overload can't help — the call site only has the base type. Register each pair
-normally, then build them through the non-generic overload, which picks the View by the
-ViewModel's concrete runtime type:
-
-```csharp
-public abstract class FeedItemViewModel : ViewModel { }
-public class TextPostViewModel  : FeedItemViewModel { /* ... */ }
-public class ImagePostViewModel : FeedItemViewModel { /* ... */ }
-
-builder.RegisterScreen<TextPostViewModel,  TextPostView>();
-builder.RegisterScreen<ImagePostViewModel, ImagePostView>();
-```
-
-```csharp
-private readonly List<IView> itemViews = new();
-
-private void RebuildFeed()
-{
-    foreach (var itemView in itemViews) {
-        itemView.Dispose();
-    }
-
-    itemViews.Clear();
-
-    foreach (FeedItemViewModel item in ViewModel.Items) {
-        // item.GetType() is TextPostViewModel / ImagePostViewModel -> the right View.
-        itemViews.Add(ViewFactory.Create(item, feedContainer));
-    }
-}
-```
-
-```csharp
-IView Create(ViewModel viewModel, VisualElement container, bool disposeViewModel = true);
-```
-
-- The lookup key is the **concrete** type: only a subclass registered with its own
-  `RegisterScreen<TSubclass, TSubclassView>()` resolves. Passing a ViewModel whose exact
-  type wasn't registered throws, naming it — there is no compile-time check, unlike the
-  generic overloads, which stay preferred whenever the type is known.
-- `disposeViewModel: false` stops the returned view from disposing the ViewModel when the
-  view is disposed — for when the parent (or DI) owns that lifetime. Default `true` matches
-  the generic overloads.
-- The return type is `IView`: `Root`, `Attach`, `ShowAsync`/`HideAsync` and `Dispose` only.
-  Reach the ViewModel through your own model, not the view.
-
-### Screens owned by a feature scope
-
-`AddUIKit` goes in one scope — the one that should own the UI root and the navigation
-stack, usually the root. `RegisterScreen` does *not* have to go in that same scope. A
-screen registered in a child `LifetimeScope` resolves its ViewModel from there, so the
-ViewModel can take that scope's services:
-
-```csharp
-// Root scope: installs UIKit and registers the screens that outlive any one feature.
-builder.AddUIKit(screenCatalog, panelSettings);
-builder.RegisterScreen<MainMenuViewModel, MainMenuView>();
-
-// Battle scope: BattleHudViewModel can inject IBattleState, which the root cannot see.
-builder.Register<IBattleState, BattleState>(Lifetime.Scoped);
-builder.RegisterScreen<BattleHudViewModel, BattleHudView>();
-```
-
-There is still exactly one `UIKitRoot`, one panel and one navigation stack, so a popup
-opened from a feature scope stacks over a root screen the way you'd expect.
-
-When the battle scope is disposed, its screens are unregistered and any of them still
-open are closed immediately — without hide animations, since the services they depend on
-are going away at the same moment. Opening one afterwards throws, naming the screen.
-
-Two live scopes can't register the same ViewModel type: a screen belongs to exactly one
-scope, and a duplicate registration throws at scope-build time rather than letting build
-order silently pick a winner.
-
-## What's included
-
-- **ViewModel** (`UIKit.Runtime.Abstractions.ViewModel`) — base class, `IDisposable`.
-  - `ResultViewModel<TResult>` — adds `WaitForResultAsync`/`SetResult` via a
-    `UniTaskCompletionSource`, for flows that resolve to a value (e.g. confirmation
-    dialogs).
-  - `PopupViewModel<TResult>` — `ResultViewModel` + `ICancelable` + `IPopup`;
-    `Cancel()` resolves the result with a cancel result.
-- **View** (`UIKit.Runtime.Core.View<TViewModel>`) — wraps a `VisualElement` root,
-  owns the `ShowAsync`/`HideAsync`/`Dispose` lifecycle, and disposes its ViewModel
-  when disposed.
-- **ScreenNavigator** (`UIKit.Runtime.Core.ScreenNavigator`, implements
-  `IScreenNavigator`) — the main entry point for navigation:
-  - `OpenAsync<TViewModel>` / `OpenAsync<TViewModel, TPayload>` → returns a
-    `ScreenHandle<TViewModel>` you can later `CloseAsync()`.
-  - `RunAsync<TViewModel, TResult>` / `RunAsync<TViewModel, TPayload, TResult>` →
-    shows the view, awaits `ResultViewModel.WaitForResultAsync`, hides, and returns
-    the result (used for modal/popup flows).
-  - Transitions are serialised: a call made while another transition is still
-    running is queued and applied in call order, so overlapping navigation can't
-    interleave. `RunAsync`'s wait for a result is *not* part of that — an open
-    modal never blocks other navigation.
-- **ScreenCatalog** — a `ScriptableObject` (create via
-  `Assets/Create/UIKit/Screen Catalog`) mapping screen id → `VisualTreeAsset`
-  (+ layer and popup options). Kept in sync with your ViewModel types by an
-  editor-only auto-sync step; a "Sync with code" button is also available under
-  `Project Settings > UI Kit`.
-- **ScreenRegistry** (`UIKit.Runtime.Core.ScreenRegistry`) — maps a ViewModel type
-  to the `ScreenBinding` that builds it and to the scope that owns it. Scopes add
-  their screens when they build and remove them when they are disposed, which is
-  what lets one navigator open screens belonging to different containers.
-- **VContainer integration** (`UIKit.Runtime.Integrations.VContainer`, separate
-  assembly) — `BuilderExtension.AddUIKit`/`RegisterScreen` wire the catalog, root
-  provider, registry, and navigator into a VContainer `IContainerBuilder`, and
-  `ScreenScope` ties each scope's screens to that scope's lifetime. Kept in its own
-  assembly so the core package has no *build-time* opt-out, but the integration
-  itself can be omitted from a project that doesn't use VContainer.
-
-## Things to know
-
-- **Don't `await` a navigator call from `OnAttach`, `ShowAsync` or `HideAsync`.**
-  Those run as part of a transition, so awaiting another one waits on an operation
-  that can't start until the current one finishes. Use `.Forget()` to queue it.
-- **A view owns its ViewModel.** `View.Dispose` disposes the bound ViewModel, and
-  the navigator disposes the view when the screen closes. Child views you create
-  yourself via `ViewFactory` are *not* tracked — dispose them from the parent's
-  `Dispose` override (see `ProfileView` in the sample).
-- **Closing is not instant.** `IsOpen` reports `false` as soon as a close starts,
-  not when its hide animation ends, so re-entrancy guards like
-  `if (handle is { IsOpen: true }) return;` behave sensibly during transitions.
-- **A screen dies with the scope that registered it.** Screens registered in a child
-  `LifetimeScope` are force-closed when it is disposed, so don't hold a
-  `ScreenHandle` to one past its scope's lifetime.
-- **A screen with no UXML fails the build.** `Project Settings > UI Kit` lists any
-  unresolved entries, and a build preprocessor fails the build naming them rather
-  than letting it surface as an exception when the screen is first opened.
 
 ## Package layout
 
 ```
 Assets/UIKit/
   package.json
-  Runtime/
-    UIKit.asmdef
-    Abstractions/
-    Core/
-    Utils/
-    Integrations/
-      VContainer/
-        UIKit.VContainer.asmdef
-  Editor/
-    UIKit.Editor.asmdef
+  Runtime/                 UIKit.asmdef, namespace UIKit
+  Integrations/
+    VContainer/            UIKit.VContainer.asmdef (needs UIKIT_VCONTAINER)
+    Zenject/               UIKit.Zenject.asmdef (needs UIKIT_ZENJECT)
+  Editor/                  UIKit.Editor.asmdef
+  Tests/                   EditMode, PlayMode, VContainer and Zenject tests
+  Samples~/Example/
 ```
 
 ## License
