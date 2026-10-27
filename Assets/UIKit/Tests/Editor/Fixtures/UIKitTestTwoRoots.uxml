@@ -1,0 +1,4 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="first-root" />
+    <ui:VisualElement name="second-root" />
+</ui:UXML>

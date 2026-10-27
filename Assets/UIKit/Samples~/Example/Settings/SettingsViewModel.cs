@@ -1,24 +1,53 @@
-using Cysharp.Threading.Tasks;
-using UIKit.Runtime.Abstractions;
+using UIKit;
+using Unity.Properties;
+using UnityEngine;
 
 namespace Example.Settings
 {
     public class SettingsViewModel : ViewModel
     {
         private readonly IScreenNavigator navigator;
+        private readonly GameSettings settings;
 
-        public float Volume { get; private set; } = 0.5f;
-        public bool Muted { get; private set; }
+        private float volume;
+        private bool muted;
 
-        public SettingsViewModel(IScreenNavigator navigator)
+        // Bound two-way by SettingsView: the slider writes through this setter, and
+        // SetProperty's change notification also notifies VolumeText, which depends on it.
+        [CreateProperty]
+        public float Volume
         {
-            this.navigator = navigator;
+            get => volume;
+            set {
+                if (SetProperty(ref volume, value)) {
+                    settings.Volume = value;
+                }
+            }
         }
 
-        public void SetVolume(float volume) => Volume = volume;
+        [CreateProperty]
+        public bool Muted
+        {
+            get => muted;
+            set {
+                if (SetProperty(ref muted, value)) {
+                    settings.Muted = value;
+                }
+            }
+        }
 
-        public void SetMuted(bool muted) => Muted = muted;
+        [CreateProperty, DependsOn(nameof(Volume), nameof(Muted))]
+        public string VolumeText => muted ? "Muted" : $"{Mathf.RoundToInt(volume * 100)}%";
 
-        public UniTask CloseAsync() => navigator.CloseAsync(this);
+        public AsyncCommand Close { get; }
+
+        public SettingsViewModel(IScreenNavigator navigator, GameSettings settings)
+        {
+            this.navigator = navigator;
+            this.settings = settings;
+            volume = settings.Volume;
+            muted = settings.Muted;
+            Close = new AsyncCommand(() => navigator.CloseAsync(this));
+        }
     }
 }

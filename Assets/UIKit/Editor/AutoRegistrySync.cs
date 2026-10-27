@@ -1,4 +1,4 @@
-using UIKit.Runtime.Core;
+using UnityEditor;
 using UnityEditor.Callbacks;
 
 namespace UIKit.Editor
@@ -8,10 +8,23 @@ namespace UIKit.Editor
         [DidReloadScripts]
         private static void OnScriptsReloaded()
         {
-            var screenCatalog = CatalogLocator.FindSingle<ScreenCatalog>();
-            if (screenCatalog != null) {
-                UIRegistrySync.Sync(screenCatalog);
+            // During a reload the asset database may still be importing and return no catalogs.
+            EditorApplication.delayCall += Run;
+        }
+
+        private static void Run()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling ||
+                EditorApplication.isUpdating) {
+                return;
             }
+
+            var catalogs = CatalogLocator.FindAll();
+            if (catalogs.Count == 0) {
+                return;
+            }
+
+            UIRegistrySync.Sync(catalogs).Log();
         }
     }
 }

@@ -1,0 +1,25 @@
+{
+    "name": "UIKit.VContainer",
+    "rootNamespace": "UIKit.VContainer",
+    "references": [
+        "UIKit",
+        "VContainer"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UIKIT_VCONTAINER"
+    ],
+    "versionDefines": [
+        {
+            "name": "jp.hadashikick.vcontainer",
+            "expression": "1.0.0",
+            "define": "UIKIT_VCONTAINER"
+        }
+    ],
+    "noEngineReferences": false
+}

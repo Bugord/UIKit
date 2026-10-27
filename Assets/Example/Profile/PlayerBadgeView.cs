@@ -1,23 +1,14 @@
-using UIKit.Runtime.Core;
-using UnityEngine.UIElements;
+using UIKit;
 
 namespace Example.Profile
 {
     public class PlayerBadgeView : View<PlayerBadgeViewModel>
     {
-        private Label scoreLabel;
-
         protected override void OnAttach()
         {
-            Root.Q<Label>("level-label").text = $"Level {ViewModel.Level}";
-
-            scoreLabel = Root.Q<Label>("score-label");
-            scoreLabel.text = $"Score: {ViewModel.Score}";
-
-            Root.Q<Button>("add-score-button").clicked += () => {
-                ViewModel.AddScore(10);
-                scoreLabel.text = $"Score: {ViewModel.Score}";
-            };
+            // The labels are bound in PlayerBadge.uxml; only the button needs code. The badge
+            // ViewModel outlives this view, so the binding ends when the view is disposed.
+            BindCommand("add-score-button", ViewModel.AddScore);
         }
     }
 }
